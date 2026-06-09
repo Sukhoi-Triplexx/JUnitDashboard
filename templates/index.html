@@ -18,6 +18,9 @@
         padding: 30px;
         border: 1px solid rgba(255, 107, 0, 0.2);
         transition: all 0.3s;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
     }
     
     .card:hover {
@@ -38,6 +41,12 @@
         text-align: center;
         cursor: pointer;
         transition: all 0.3s;
+        flex: 1;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+            
     }
     
     .upload-area:hover {
@@ -62,6 +71,7 @@
         transition: all 0.3s;
         margin-top: 20px;
         margin-bottom: 10px;
+        align-self: center;
     }
     
     button:hover {
@@ -122,7 +132,7 @@
         </div>
         <button onclick="document.getElementById('fileInput').click()">Выбрать файлы</button>
         <div id="fileList" class="file-list"></div>
-        <div class="loading" id="loading">⏳ Анализ файлов...</div>
+        <div class="loading" id="loading">Анализ файлов...</div>
         <div class="error" id="error"></div>
     </div>
     
@@ -134,6 +144,9 @@
             <input type="file" id="zipInput" accept=".zip" style="display: none;">
         </div>
         <button onclick="document.getElementById('zipInput').click()">Выбрать ZIP</button>
+        <div id="zipFileList" class="file-list"></div>
+        <div class="loading" id="zipLoading" style="display: none;">Анализ ZIP...</div>
+        <div class="error" id="zipError" style="display: none;"></div>
     </div>
 </div>
 
@@ -154,6 +167,9 @@
     const loading = document.getElementById('loading');
     const errorDiv = document.getElementById('error');
     const fileListDiv = document.getElementById('fileList');
+    const zipFileListDiv = document.getElementById('zipFileList');
+    const zipLoading = document.getElementById('zipLoading');
+    const zipErrorDiv = document.getElementById('zipError');
     
     uploadArea.onclick = () => fileInput.click();
     uploadArea.ondragover = (e) => { e.preventDefault(); uploadArea.style.borderColor = '#ff6b00'; };
@@ -196,7 +212,7 @@
         e.preventDefault();
         const file = e.dataTransfer.files[0];
         if (file && file.name.endsWith('.zip')) await handleZip(file);
-        else showError('Загрузите ZIP архив');
+        else showZipError('Загрузите ZIP архив');
     };
     
     zipInput.onchange = async (e) => {
@@ -206,20 +222,34 @@
     async function handleZip(file) {
         const formData = new FormData();
         formData.append('zipfile', file);
-        loading.style.display = 'block';
+        
+        if (zipFileListDiv) {
+            zipFileListDiv.innerHTML = `<strong>✅ Выбран ZIP:</strong><br><div>📦 ${file.name}</div>`;
+        }
+        if (zipLoading) zipLoading.style.display = 'block';
+        if (zipErrorDiv) zipErrorDiv.style.display = 'none';
+        
         try {
             const response = await fetch('/upload/zip', { method: 'POST', body: formData });
             const data = await response.json();
-            if (data.error) showError(data.error);
+            if (data.error) showZipError(data.error);
             else window.location.href = `/report/${data.group_id}`;
-        } catch (error) { showError('Ошибка загрузки ZIP'); }
-        finally { loading.style.display = 'none'; }
+        } catch (error) { showZipError('Ошибка загрузки ZIP'); }
+        finally { if (zipLoading) zipLoading.style.display = 'none'; }
     }
     
     function showError(msg) {
         errorDiv.textContent = msg;
         errorDiv.style.display = 'block';
         setTimeout(() => errorDiv.style.display = 'none', 5000);
+    }
+    
+    function showZipError(msg) {
+        if (zipErrorDiv) {
+            zipErrorDiv.textContent = msg;
+            zipErrorDiv.style.display = 'block';
+            setTimeout(() => zipErrorDiv.style.display = 'none', 5000);
+        }
     }
 </script>
 {% endblock %}
