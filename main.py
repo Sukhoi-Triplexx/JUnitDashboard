@@ -12,11 +12,15 @@ import time
 import hashlib
 from pathlib import Path
 import platform
+from datetime import timedelta
+import shutil
+import glob
 
 app = Flask(__name__)
 app.secret_key = 'junit_viewer_secret_key_2024'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = 'junit_reports.db'
 CONFIG_PATH = 'config.json'
 WATCHED_FOLDER = 'watched_reports'
@@ -800,6 +804,176 @@ def clear_processed_files():
         
     except Exception as e:
         print(f"❌ Error: {e}")
+        return jsonify({'error': str(e)}), 500
+    
+# ========== DATA MANAGEMENT ENDPOINTS ==========
+
+@app.route('/api/export', methods=['GET'])
+def export_data():
+    """Экспорт всех данных в JSON"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Получаем все отчеты
+        cursor.execute('SELECT group_id, created_date, created_date_str, group_data, file_count, combined_summary, is_auto, display_name FROM report_groups')
+        reports = cursor.fetchall()
+        
+        # Получаем историю обработанных файлов
+        cursor.execute('SELECT file_path, file_hash, processed_date, group_id FROM processed_files')
+        processed = cursor.fetchall()
+        
+        conn.close()
+        
+        export_data = {
+            'export_date': datetime.now().isoformat(),
+            'version': '1.0',
+            'reports': [
+                {
+                    'group_id': r[0],
+                    'created_date': r[1],
+                    'created_date_str': r[2],
+                    'group_data': json.loads(r[3]),
+                    'file_count': r[4],
+                    'combined_summary': json.loads(r[5]),
+                    'is_auto': bool(r[6]),
+                    'display_name': r[7]
+                }
+                for r in reports
+            ],
+            'processed_files': [
+                {
+                    'file_path': p[0],
+                    'file_hash': p[1],
+                    'processed_date': p[2],
+                    'group_id': p[3]
+                }
+                for p in processed
+            ]
+        }
+        
+        return jsonify(export_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/import', methods=['POST'])
+def import_data():
+    """Импорт данных из JSON"""
+    try:
+        data = request.json
+        
+        if not data or 'reports' not in data:
+            return jsonify({'error': 'Invalid data format'}), 400
+        
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Импортируем отчеты
+        for report in data['reports']:
+            cursor.execute('''
+                INSERT OR REPLACE INTO report_groups 
+                (group_id, created_date, created_date_str, group_data, file_count, combined_summary, is_auto, display_name)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                report['group_id'],
+                report['created_date'],
+                report['created_date_str'],
+                json.dumps(report['group_data']),
+                report['file_count'],
+                json.dumps(report['combined_summary']),
+                1 if report['is_auto'] else 0,
+                report['display_name']
+            ))
+        
+        # Импортируем обработанные файлы
+        if 'processed_files' in data:
+            for pf in data['processed_files']:
+                cursor.execute('''
+                    INSERT OR REPLACE INTO processed_files (file_path, file_hash, processed_date, group_id)
+                    VALUES (?, ?, ?, ?)
+                ''', (pf['file_path'], pf['file_hash'], pf['processed_date'], pf['group_id']))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': f'Imported {len(data["reports"])} reports'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/backup', methods=['POST'])
+def backup_db():
+    """Создание бэкапа базы данных"""
+    try:
+        backup_dir = os.path.join(ROOT_DIR, 'backups')
+        os.makedirs(backup_dir, exist_ok=True)
+        
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_path = os.path.join(backup_dir, f'vunit_backup_{timestamp}.db')
+        
+        shutil.copy2(DB_PATH, backup_path)
+        
+        # Удаляем старые бэкапы (оставляем 10)
+        backups = sorted(glob.glob(os.path.join(backup_dir, 'vunit_backup_*.db')))
+        for old_backup in backups[:-10]:
+            os.remove(old_backup)
+        
+        return jsonify({'success': True, 'message': f'Backup created: {os.path.basename(backup_path)}'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/restore', methods=['POST'])
+def restore_db():
+    """Восстановление из последнего бэкапа"""
+    try:
+        backup_dir = os.path.join(ROOT_DIR, 'backups')
+        backups = sorted(glob.glob(os.path.join(backup_dir, 'vunit_backup_*.db')))
+        
+        if not backups:
+            return jsonify({'error': 'No backups found'}), 404
+        
+        latest_backup = backups[-1]
+        
+        # Создаем бэкап текущей БД перед восстановлением
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        pre_restore_backup = os.path.join(backup_dir, f'pre_restore_{timestamp}.db')
+        shutil.copy2(DB_PATH, pre_restore_backup)
+        
+        # Восстанавливаем
+        shutil.copy2(latest_backup, DB_PATH)
+        
+        return jsonify({'success': True, 'message': f'Restored from: {os.path.basename(latest_backup)}'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/cleanup', methods=['DELETE'])
+def cleanup_old_reports():
+    """Удаляет отчеты старше 30 дней"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Дата 30 дней назад
+        cutoff_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        
+        # Получаем ID для удаления
+        cursor.execute('SELECT group_id FROM report_groups WHERE created_date_str < ?', (cutoff_date,))
+        old_reports = cursor.fetchall()
+        
+        # Удаляем отчеты
+        cursor.execute('DELETE FROM report_groups WHERE created_date_str < ?', (cutoff_date,))
+        deleted_count = cursor.rowcount
+        
+        # Удаляем связанные processed_files (оставляем их на всякий случай)
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': f'Deleted {deleted_count} old reports'})
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
