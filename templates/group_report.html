@@ -1,0 +1,1143 @@
+{% extends "base.html" %}
+
+{% block title %}Test Report - VUnit{% endblock %}
+{% block page_title %}TEST ANALYSIS REPORT{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Предыдущие стили остаются, добавим новые для таблицы ошибок с разворачиванием */
+    
+    .errors-table tr {
+        cursor: pointer;
+    }
+    
+    .errors-table tr:hover {
+        background: rgba(255, 107, 0, 0.08);
+    }
+    
+    .error-detail-row {
+        display: none;
+        background: rgba(0, 0, 0, 0.4);
+    }
+    
+    .error-detail-row.open {
+        display: table-row;
+    }
+    
+    .error-detail-cell {
+        padding: 15px 20px !important;
+        border-top: 1px solid rgba(255, 107, 0, 0.2);
+    }
+    
+    .error-full-message {
+        background: rgba(239, 68, 68, 0.1);
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border-left: 3px solid #ef4444;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #f87171;
+        word-break: break-word;
+    }
+    
+    .error-full-traceback {
+        background: #0a0a0a;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: 'Courier New', 'Consolas', monospace;
+        font-size: 11px;
+        line-height: 1.5;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        border: 1px solid rgba(255, 107, 0, 0.2);
+        max-height: 300px;
+        overflow-y: auto;
+        color: #cbd5e1;
+    }
+    
+    .error-full-traceback::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    
+    .expand-icon {
+        display: inline-block;
+        font-size: 12px;
+        margin-right: 8px;
+        color: #ff6b00;
+    }
+    
+    .error-message-preview {
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #f87171;
+    }
+    
+    .badge-status {
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 600;
+    }
+    
+    .badge-failed {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+    }
+    
+    .badge-error {
+        background: rgba(245, 158, 11, 0.2);
+        color: #f59e0b;
+    }
+    
+    /* Остальные стили как были */
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .card {
+        background: rgba(15, 23, 42, 0.6);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        border: 1px solid rgba(255, 107, 0, 0.2);
+        transition: all 0.2s;
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+        border-color: #ff6b00;
+    }
+    
+    .card-value {
+        font-size: 2em;
+        font-weight: 600;
+        margin: 10px 0;
+    }
+    
+    .card-label {
+        font-size: 11px;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 500;
+    }
+    
+    .card.passed .card-value { color: #10b981; }
+    .card.failed .card-value { color: #ef4444; }
+    .card.errors .card-value { color: #f59e0b; }
+    .card.rate .card-value { color: #ff6b00; }
+    
+    .charts-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .chart-box {
+        background: rgba(15, 23, 42, 0.4);
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px solid rgba(255, 107, 0, 0.2);
+    }
+    
+    .chart-box h3 {
+        color: #ff9f4a;
+        margin-bottom: 15px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 1px;
+    }
+    
+    .toolbar {
+        background: rgba(15, 23, 42, 0.4);
+        border-radius: 12px;
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+        border: 1px solid rgba(255, 107, 0, 0.2);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+    
+    .toolbar-left {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .toolbar-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .search-box {
+        padding: 8px 12px;
+        border: 1px solid rgba(255, 107, 0, 0.25);
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.5);
+        color: #e2e8f0;
+        width: 250px;
+        font-size: 12px;
+    }
+    
+    .search-box:focus {
+        outline: none;
+        border-color: #ff6b00;
+    }
+    
+    .open-new-btn, .export-btn {
+        padding: 8px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 12px;
+        font-weight: 500;
+    }
+    
+    .open-new-btn {
+        border: 1px solid #ff6b00;
+        background: transparent;
+        color: #ff9f4a;
+    }
+    
+    .open-new-btn:hover {
+        background: rgba(255, 107, 0, 0.1);
+    }
+    
+    .export-btn {
+        border: 1px solid #10b981;
+        background: transparent;
+        color: #10b981;
+    }
+    
+    .export-btn:hover {
+        background: rgba(16, 185, 129, 0.1);
+    }
+    
+    .export-csv {
+        border-color: #f59e0b;
+        color: #f59e0b;
+    }
+    
+    .export-csv:hover {
+        background: rgba(245, 158, 11, 0.1);
+    }
+    
+    .scroll-container {
+        max-height: 45vh;
+        overflow-y: auto;
+        padding-right: 10px;
+        margin-top: 20px;
+    }
+    
+    .scroll-container::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .scroll-container::-webkit-scrollbar-track {
+        background: #0a0a0a;
+    }
+    
+    .scroll-container::-webkit-scrollbar-thumb {
+        background: #ff6b00;
+        border-radius: 3px;
+    }
+    
+    .file-card {
+        background: rgba(15, 23, 42, 0.4);
+        border-radius: 12px;
+        margin-bottom: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 107, 0, 0.15);
+        transition: all 0.2s;
+    }
+    
+    .file-card:hover {
+        border-color: rgba(255, 107, 0, 0.4);
+    }
+    
+    .file-header {
+        background: rgba(15, 23, 42, 0.6);
+        padding: 16px 20px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.2s;
+    }
+    
+    .file-header:hover {
+        background: rgba(255, 107, 0, 0.05);
+    }
+    
+    .file-info {
+        flex: 1;
+    }
+    
+    .file-name {
+        font-weight: 600;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        color: #e2e8f0;
+        font-size: 14px;
+    }
+    
+    .file-stats {
+        display: flex;
+        gap: 15px;
+        font-size: 11px;
+        color: #94a3b8;
+    }
+    
+    .badge {
+        padding: 3px 10px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .badge-perfect { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-good { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .badge-warning { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-critical { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+    
+    .file-content {
+        display: none;
+        padding: 20px;
+        background: rgba(0, 0, 0, 0.3);
+        border-top: 1px solid rgba(255, 107, 0, 0.1);
+    }
+    
+    .file-content.open {
+        display: block;
+    }
+    
+    .suite {
+        margin-bottom: 20px;
+        border: 1px solid rgba(255, 107, 0, 0.1);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .suite-title {
+        background: rgba(255, 107, 0, 0.05);
+        padding: 10px 16px;
+        font-weight: 600;
+        font-size: 13px;
+        color: #ff9f4a;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    
+    .test-case {
+        padding: 16px 20px;
+        border-left: 3px solid;
+        background: rgba(0, 0, 0, 0.2);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        transition: all 0.2s;
+    }
+    
+    .test-case:last-child {
+        border-bottom: none;
+    }
+    
+    .test-case:hover {
+        background: rgba(255, 107, 0, 0.03);
+    }
+    
+    .test-case.passed { border-left-color: #10b981; }
+    .test-case.failed { border-left-color: #ef4444; background: rgba(239, 68, 68, 0.02); }
+    .test-case.error { border-left-color: #f59e0b; background: rgba(245, 158, 11, 0.02); }
+    
+    .test-name {
+        font-weight: 600;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 14px;
+    }
+    
+    .test-time {
+        color: #94a3b8;
+        font-size: 11px;
+        font-family: monospace;
+    }
+    
+    .test-details {
+        margin-top: 10px;
+        font-size: 13px;
+    }
+    
+    .test-classname {
+        color: #94a3b8;
+        margin-bottom: 8px;
+        font-size: 12px;
+    }
+    
+    .test-message {
+        color: #f87171;
+        margin: 10px 0 8px;
+        font-size: 13px;
+        font-weight: 500;
+        word-break: break-word;
+        line-height: 1.5;
+        background: rgba(239, 68, 68, 0.05);
+        padding: 10px 12px;
+        border-radius: 6px;
+        border-left: 3px solid #ef4444;
+    }
+    
+    .test-traceback {
+        font-family: 'Courier New', 'Consolas', monospace;
+        font-size: 12px;
+        line-height: 1.6;
+        background: #0a0a0a;
+        padding: 14px 16px;
+        border-radius: 8px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 400px;
+        overflow-y: auto;
+        margin-top: 10px;
+        border: 1px solid rgba(255, 107, 0, 0.15);
+        color: #cbd5e1;
+    }
+    
+    .errors-table-container {
+        background: rgba(15, 23, 42, 0.4);
+        border-radius: 12px;
+        margin-top: 20px;
+        border: 1px solid rgba(255, 107, 0, 0.2);
+        overflow: hidden;
+    }
+    
+    .errors-table-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        background: rgba(0, 0, 0, 0.3);
+        border-bottom: 1px solid rgba(255, 107, 0, 0.2);
+        cursor: pointer;
+    }
+    
+    .errors-table-header h4 {
+        color: #ff9f4a;
+        font-size: 13px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .errors-table-header .toggle-icon {
+        color: #ff6b00;
+        font-size: 16px;
+        transition: transform 0.2s;
+    }
+    
+    .errors-table-content {
+        display: none;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    .errors-table-content.open {
+        display: block;
+    }
+    
+    .errors-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+    
+    .errors-table th,
+    .errors-table td {
+        padding: 10px 12px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 107, 0, 0.1);
+    }
+    
+    .errors-table th {
+        background: rgba(0, 0, 0, 0.4);
+        color: #ff9f4a;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+    }
+    
+    .errors-table tr:hover {
+        background: rgba(255, 107, 0, 0.05);
+    }
+    
+    .error-detail-row {
+        display: none;
+        background: rgba(0, 0, 0, 0.3);
+    }
+    
+    .error-detail-row.open {
+        display: table-row;
+    }
+    
+    .error-detail-cell {
+        padding: 15px 20px !important;
+        border-top: 1px solid rgba(255, 107, 0, 0.15);
+    }
+    
+    .error-full-message {
+        background: rgba(239, 68, 68, 0.08);
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        border-left: 3px solid #ef4444;
+        font-size: 12px;
+        line-height: 1.5;
+        color: #f87171;
+        word-break: break-word;
+    }
+    
+    .error-full-traceback {
+        background: #0a0a0a;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: 'Courier New', 'Consolas', monospace;
+        font-size: 11px;
+        line-height: 1.5;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        border: 1px solid rgba(255, 107, 0, 0.2);
+        max-height: 300px;
+        overflow-y: auto;
+        color: #cbd5e1;
+    }
+    
+    .expand-icon {
+        display: inline-block;
+        font-size: 12px;
+        margin-right: 8px;
+        color: #ff6b00;
+        transition: transform 0.2s;
+    }
+    
+    .report-footer {
+        margin-top: 30px;
+        padding: 20px 0;
+        border-top: 1px solid rgba(255, 107, 0, 0.2);
+        text-align: center;
+        font-size: 11px;
+        color: #64748b;
+    }
+    
+    .report-footer-content {
+        display: flex;
+        justify-content: center;
+        gap: 30px;
+        flex-wrap: wrap;
+    }
+    
+    .footer-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .footer-info span:first-child {
+        opacity: 0.6;
+    }
+    
+    .footer-info span:last-child {
+        color: #ff9f4a;
+        font-weight: 500;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 60px;
+        color: #64748b;
+        font-size: 13px;
+    }
+    
+    .toast {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: #0d0d0d;
+        border: 1px solid #ff6b00;
+        color: #ff9f4a;
+        padding: 10px 20px;
+        border-radius: 8px;
+        z-index: 10001;
+        animation: slideIn 0.2s ease;
+        font-size: 12px;
+    }
+    
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    
+    @media (max-width: 768px) {
+        .charts-container { grid-template-columns: 1fr; }
+        .toolbar { flex-direction: column; align-items: stretch; }
+        .toolbar-left, .toolbar-right { justify-content: space-between; }
+        .search-box { width: 100%; }
+        .scroll-container { max-height: 35vh; }
+        .errors-table th, .errors-table td { font-size: 10px; padding: 6px 8px; }
+        .error-message-preview { max-width: 120px; }
+        .error-full-message { font-size: 10px; }
+        .error-full-traceback { font-size: 9px; max-height: 200px; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="summary-cards" id="summaryCards"></div>
+
+<div class="charts-container">
+    <div class="chart-box">
+        <h3>TEST RESULTS DISTRIBUTION</h3>
+        <canvas id="resultsChart"></canvas>
+    </div>
+    <div class="chart-box">
+        <h3>PASS RATE BY FILE</h3>
+        <canvas id="filesChart"></canvas>
+    </div>
+</div>
+
+<div class="toolbar">
+    <div class="toolbar-left">
+        <input type="text" class="search-box" id="searchBox" placeholder="SEARCH TEST NAME...">
+    </div>
+    <div class="toolbar-right">
+        <button class="export-btn" id="showErrorsTableBtn">SHOW ERRORS TABLE</button>
+        <button class="export-btn export-csv" id="exportErrorsCsvBtn">EXPORT ERRORS TO CSV</button>
+        <button class="export-btn" id="exportErrorsJsonBtn">EXPORT ERRORS TO JSON</button>
+        <button class="open-new-btn" id="openNewWindowBtn">OPEN IN NEW TAB</button>
+    </div>
+</div>
+
+<div class="scroll-container" id="reportsContainer"></div>
+
+<!-- Таблица ошибок -->
+<div class="errors-table-container" id="errorsTableContainer" style="display: none;">
+    <div class="errors-table-header" onclick="toggleErrorsTable()">
+        <h4>⚠️ FAILED & ERRORED TESTS</h4>
+        <div class="toggle-icon" id="errorsTableToggleIcon">▼</div>
+    </div>
+    <div class="errors-table-content" id="errorsTableContent">
+        <table class="errors-table" id="errorsTable">
+            <thead>
+                <tr>
+                    <th style="width: 30px;"></th>
+                    <th>Status</th>
+                    <th>File</th>
+                    <th>Suite</th>
+                    <th>Test Name</th>
+                    <th>Error Message</th>
+                    <th>Time (s)</th>
+                </tr>
+            </thead>
+            <tbody id="errorsTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Footer -->
+<div class="report-footer">
+    <div class="report-footer-content">
+        <div class="footer-info">
+            <span>📊 Powered by</span>
+            <span>VUnit Enterprise</span>
+        </div>
+        <div class="footer-info">
+            <span>🕐 Generated</span>
+            <span id="reportTimestamp"></span>
+        </div>
+        <div class="footer-info">
+            <span>📁 Total files</span>
+            <span id="totalFilesCount"></span>
+        </div>
+        <div class="footer-info">
+            <span>⚡ JUnit Parser</span>
+            <span>v3.1</span>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const groupId = window.location.pathname.split('/').pop();
+    let data = null;
+    let searchTerm = '';
+    let charts = {};
+    let allErrors = [];
+    
+    async function loadReport() {
+        const response = await fetch(`/api/report/${groupId}`);
+        data = await response.json();
+        collectErrors();
+        renderReport();
+        renderCharts();
+        updateFooter();
+    }
+    
+    function collectErrors() {
+        allErrors = [];
+        if (!data || !data.reports) return;
+        
+        for (const report of data.reports) {
+            const filename = report.filename || 'unknown';
+            for (const suite of (report.suites || [])) {
+                const suiteName = suite.name || 'unknown';
+                for (const test of (suite.test_cases || [])) {
+                    if (test.status === 'failed' || test.status === 'error') {
+                        allErrors.push({
+                            status: test.status,
+                            filename: filename,
+                            suite: suiteName,
+                            testName: test.name,
+                            classname: test.classname,
+                            message: test.message || '',
+                            traceback: test.traceback || '',
+                            time: test.time || 0,
+                            index: allErrors.length
+                        });
+                    }
+                }
+            }
+        }
+    }
+    
+    function toggleErrorDetail(index) {
+        const detailRow = document.getElementById(`error-detail-${index}`);
+        const expandIcon = document.getElementById(`expand-icon-${index}`);
+        
+        if (detailRow) {
+            detailRow.classList.toggle('open');
+            if (expandIcon) {
+                expandIcon.textContent = detailRow.classList.contains('open') ? '▼' : '▶';
+            }
+        }
+    }
+    
+    function renderErrorsTable() {
+        const tbody = document.getElementById('errorsTableBody');
+        if (!tbody) return;
+        
+        if (allErrors.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px;">✅ NO ERRORS FOUND</td></tr>';
+            return;
+        }
+        
+        let html = '';
+        for (let i = 0; i < allErrors.length; i++) {
+            const err = allErrors[i];
+            const hasDetails = err.message || err.traceback;
+            
+            html += `
+                <tr onclick="toggleErrorDetail(${i})" style="cursor: pointer;">
+                    <td style="text-align: center;">
+                        ${hasDetails ? `<span class="expand-icon" id="expand-icon-${i}">▶</span>` : '—'}
+                    </td>
+                    <td><span class="badge-status badge-${err.status}">${err.status.toUpperCase()}</span></td>
+                    <td title="${escapeHtml(err.filename)}">${escapeHtml(err.filename.length > 30 ? err.filename.substring(0, 27) + '...' : err.filename)}</td>
+                    <td title="${escapeHtml(err.suite)}">${escapeHtml(err.suite.length > 25 ? err.suite.substring(0, 22) + '...' : err.suite)}</td>
+                    <td title="${escapeHtml(err.testName)}">${escapeHtml(err.testName.length > 35 ? err.testName.substring(0, 32) + '...' : err.testName)}</td>
+                    <td>
+                        <div class="error-message-preview" title="${escapeHtml(err.message)}">${escapeHtml(err.message ? (err.message.length > 60 ? err.message.substring(0, 57) + '...' : err.message) : '-')}</div>
+                    </td>
+                    <td>${err.time}s</td>
+                </tr>
+                ${hasDetails ? `
+                    <tr class="error-detail-row" id="error-detail-${i}">
+                        <td colspan="7" class="error-detail-cell">
+                            ${err.message ? `
+                                <div class="error-full-message">
+                                    <strong>Error Message:</strong><br>
+                                    ${escapeHtml(err.message)}
+                                </div>
+                            ` : ''}
+                            ${err.traceback ? `
+                                <div>
+                                    <strong> Stack Trace:</strong>
+                                    <div class="error-full-traceback">${escapeHtml(err.traceback)}</div>
+                                </div>
+                            ` : ''}
+                        </td>
+                    </tr>
+                ` : ''}
+            `;
+        }
+        tbody.innerHTML = html;
+    }
+    
+    function toggleErrorsTable() {
+        const content = document.getElementById('errorsTableContent');
+        const icon = document.getElementById('errorsTableToggleIcon');
+        if (content.classList.contains('open')) {
+            content.classList.remove('open');
+            icon.textContent = '▼';
+        } else {
+            content.classList.add('open');
+            icon.textContent = '▲';
+        }
+    }
+    
+    function showErrorsTable() {
+        const container = document.getElementById('errorsTableContainer');
+        if (allErrors.length === 0) {
+            showToast('No errors found to display');
+            return;
+        }
+        renderErrorsTable();
+        container.style.display = 'block';
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showToast(`Showing ${allErrors.length} errors`);
+    }
+    
+    function exportErrorsToCSV() {
+        if (allErrors.length === 0) {
+            showToast('No errors to export');
+            return;
+        }
+        
+        const headers = ['Status', 'File', 'Suite', 'Test Name', 'Class', 'Error Message', 'Stack Trace', 'Time (s)'];
+        const rows = allErrors.map(err => [
+            err.status,
+            err.filename,
+            err.suite,
+            err.testName,
+            err.classname,
+            (err.message || '').replace(/,/g, ';').replace(/\n/g, ' '),
+            (err.traceback || '').replace(/,/g, ';').replace(/\n/g, ' '),
+            err.time
+        ]);
+        
+        const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+        const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.setAttribute('download', `errors_${new Date().toISOString().slice(0, 19)}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        showToast(`Exported ${allErrors.length} errors to CSV`);
+    }
+    
+    function exportErrorsToJSON() {
+        if (allErrors.length === 0) {
+            showToast('No errors to export');
+            return;
+        }
+        
+        const exportData = {
+            exported_at: new Date().toISOString(),
+            report_id: groupId,
+            total_errors: allErrors.length,
+            errors: allErrors.map(err => ({
+                status: err.status,
+                filename: err.filename,
+                suite: err.suite,
+                test_name: err.testName,
+                classname: err.classname,
+                message: err.message,
+                traceback: err.traceback,
+                time_seconds: err.time
+            }))
+        };
+        
+        const jsonContent = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([jsonContent], { type: 'application/json' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.setAttribute('download', `errors_${new Date().toISOString().slice(0, 19)}.json`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        showToast(`Exported ${allErrors.length} errors to JSON`);
+    }
+    
+    function updateFooter() {
+        if (!data) return;
+        const now = new Date();
+        document.getElementById('reportTimestamp').textContent = now.toLocaleString();
+        document.getElementById('totalFilesCount').textContent = data.file_count || 0;
+    }
+    
+    function renderReport() {
+        if (!data || !data.combined_summary) return;
+        
+        const summary = data.combined_summary;
+        document.getElementById('summaryCards').innerHTML = `
+            <div class="card passed">
+                <div class="card-label">PASSED</div>
+                <div class="card-value">${summary.total_passed || 0}</div>
+            </div>
+            <div class="card failed">
+                <div class="card-label">FAILED</div>
+                <div class="card-value">${summary.total_failures || 0}</div>
+            </div>
+            <div class="card errors">
+                <div class="card-label">ERRORS</div>
+                <div class="card-value">${summary.total_errors || 0}</div>
+            </div>
+            <div class="card">
+                <div class="card-label">TOTAL TESTS</div>
+                <div class="card-value">${summary.total_tests || 0}</div>
+            </div>
+            <div class="card rate">
+                <div class="card-label">PASS RATE</div>
+                <div class="card-value">${summary.pass_rate || 0}%</div>
+            </div>
+            <div class="card">
+                <div class="card-label">FILES</div>
+                <div class="card-value">${data.file_count || 0}</div>
+            </div>
+        `;
+        
+        let filteredReports = data.reports ? [...data.reports] : [];
+        
+        if (searchTerm && searchTerm.trim()) {
+            const term = searchTerm.toLowerCase().trim();
+            filteredReports = filteredReports.filter(r => {
+                if (r.filename && r.filename.toLowerCase().includes(term)) return true;
+                return r.suites.some(s =>
+                    s.test_cases.some(c =>
+                        (c.name && c.name.toLowerCase().includes(term)) ||
+                        (c.classname && c.classname.toLowerCase().includes(term))
+                    )
+                );
+            });
+        }
+        
+        const container = document.getElementById('reportsContainer');
+        
+        if (!filteredReports.length) {
+            container.innerHTML = '<div class="empty-state">NO RESULTS FOUND</div>';
+            return;
+        }
+        
+        let html = '';
+        
+        for (let idx = 0; idx < filteredReports.length; idx++) {
+            const report = filteredReports[idx];
+            const s = report.summary || {};
+            const passRate = s.pass_rate || 0;
+            const badgeClass = passRate >= 80 ? (passRate === 100 ? 'perfect' : 'good') : (passRate >= 50 ? 'warning' : 'critical');
+            const badgeText = passRate >= 80 ? (passRate === 100 ? 'PERFECT' : 'GOOD') : (passRate >= 50 ? 'WARNING' : 'CRITICAL');
+            const uniqueId = `file-${Date.now()}-${idx}`;
+            
+            let suitesHtml = '';
+            const suites = report.suites || [];
+            
+            for (const suite of suites) {
+                let testCases = suite.test_cases || [];
+                
+                if (searchTerm && searchTerm.trim()) {
+                    const term = searchTerm.toLowerCase().trim();
+                    testCases = testCases.filter(c =>
+                        (c.name && c.name.toLowerCase().includes(term)) ||
+                        (c.classname && c.classname.toLowerCase().includes(term))
+                    );
+                }
+                
+                if (testCases.length === 0) continue;
+                
+                let casesHtml = '';
+                for (const c of testCases) {
+                    casesHtml += `
+                        <div class="test-case ${c.status}">
+                            <div class="test-name">
+                                <span>${c.status === 'passed' ? '✓' : c.status === 'failed' ? '✗' : '!'} ${escapeHtml(c.name || 'unknown')}</span>
+                                <span class="test-time">${c.time || 0}s</span>
+                            </div>
+                            <div class="test-details">
+                                <div class="test-classname"> ${escapeHtml(c.classname || 'unknown')}</div>
+                                ${c.message ? `<div class="test-message">⚠️ ${escapeHtml(c.message)}</div>` : ''}
+                                ${c.traceback ? `<div class="test-traceback">${escapeHtml(c.traceback)}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                suitesHtml += `
+                    <div class="suite">
+                        <div class="suite-title">${escapeHtml(suite.name || 'unknown')}</div>
+                        ${casesHtml}
+                    </div>
+                `;
+            }
+            
+            if (suitesHtml === '') continue;
+            
+            html += `
+                <div class="file-card">
+                    <div class="file-header" onclick="toggleFile('${uniqueId}')">
+                        <div class="file-info">
+                            <div class="file-name">
+                                 ${escapeHtml(report.filename || 'unknown')}
+                                <span class="badge badge-${badgeClass}">${passRate}% ${badgeText}</span>
+                            </div>
+                            <div class="file-stats">
+                                <span>P: ${s.total_passed || 0}</span>
+                                <span>F: ${s.total_failures || 0}</span>
+                                <span>E: ${s.total_errors || 0}</span>
+                                <span>T: ${s.total_time || 0}s</span>
+                            </div>
+                        </div>
+                        <div style="font-size: 16px; color: #ff6b00;">▼</div>
+                    </div>
+                    <div class="file-content" id="${uniqueId}">
+                        ${suitesHtml}
+                    </div>
+                </div>
+            `;
+        }
+        
+        container.innerHTML = html;
+    }
+    
+    function renderCharts() {
+        if (!data || !data.combined_summary) return;
+        
+        const summary = data.combined_summary;
+        const total = (summary.total_passed || 0) + (summary.total_failures || 0) + (summary.total_errors || 0);
+        
+        if (charts.resultsChart) charts.resultsChart.destroy();
+        const ctx1 = document.getElementById('resultsChart').getContext('2d');
+        charts.resultsChart = new Chart(ctx1, {
+            type: 'doughnut',
+            data: {
+                labels: ['PASSED', 'FAILED', 'ERRORS'],
+                datasets: [{
+                    data: [summary.total_passed || 0, summary.total_failures || 0, summary.total_errors || 0],
+                    backgroundColor: ['#10b981', '#ef4444', '#f59e0b'],
+                    borderWidth: 0,
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } },
+                    tooltip: { 
+                        callbacks: { 
+                            label: (ctx) => `${ctx.label}: ${ctx.raw} (${total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0}%)`
+                        } 
+                    }
+                },
+                cutout: '60%'
+            }
+        });
+        
+        if (charts.filesChart) charts.filesChart.destroy();
+        const reports = data.reports || [];
+        const fileNames = reports.map(r => {
+            const name = r.filename || 'unknown';
+            return name.length > 20 ? name.substring(0, 17) + '...' : name;
+        });
+        const filePassed = reports.map(r => r.summary?.pass_rate || 0);
+        const fileColors = filePassed.map(rate => rate >= 80 ? '#10b981' : (rate >= 50 ? '#f59e0b' : '#ef4444'));
+        
+        const ctx2 = document.getElementById('filesChart').getContext('2d');
+        charts.filesChart = new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: fileNames,
+                datasets: [{
+                    label: 'Pass Rate (%)',
+                    data: filePassed,
+                    backgroundColor: fileColors,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: { 
+                    legend: { display: false }, 
+                    tooltip: { callbacks: { label: (ctx) => `Pass Rate: ${ctx.raw}%` } } 
+                },
+                scales: {
+                    y: { beginAtZero: true, max: 100, grid: { color: '#334155' }, title: { display: true, text: '%', color: '#94a3b8', font: { size: 10 } } },
+                    x: { ticks: { rotation: 35, color: '#94a3b8', font: { size: 9 } } }
+                }
+            }
+        });
+    }
+    
+    function openInNewTab() {
+        window.open(`/report/${groupId}`, '_blank');
+        showToast('Opened in new tab');
+    }
+    
+    function showToast(message) {
+        const existingToast = document.querySelector('.toast');
+        if (existingToast) existingToast.remove();
+        
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2000);
+    }
+    
+    function toggleFile(id) {
+        const content = document.getElementById(id);
+        if (content) {
+            content.classList.toggle('open');
+        }
+    }
+    
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    document.getElementById('searchBox').addEventListener('input', (e) => {
+        searchTerm = e.target.value;
+        renderReport();
+    });
+    
+    document.getElementById('openNewWindowBtn').onclick = openInNewTab;
+    document.getElementById('showErrorsTableBtn').onclick = showErrorsTable;
+    document.getElementById('exportErrorsCsvBtn').onclick = exportErrorsToCSV;
+    document.getElementById('exportErrorsJsonBtn').onclick = exportErrorsToJSON;
+    
+    loadReport();
+</script>
+{% endblock %}

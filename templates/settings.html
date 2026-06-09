@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}Настройки - VUnit {% endblock %}
+{% block page_title %}Системные настройки{% endblock %}
+
+{% block extra_css %}
+<style>
+    .settings-grid {
+        display: grid;
+        gap: 25px;
+    }
+    
+    .settings-card {
+        background: rgba(0, 0, 0, 0.925);
+        backdrop-filter: blur(10px);
+        border-radius: 16px;
+        padding: 25px;
+        border: 1px solid rgba(255, 107, 0, 0.2);
+    }
+    
+    .settings-card h3 {
+        color: #ff9f4a;
+        margin-bottom: 20px;
+        font-size: 1.2em;
+    }
+    
+    .setting-item {
+        margin-bottom: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(255, 107, 0, 0.1);
+    }
+    
+    .setting-label {
+        font-weight: 600;
+        color: #e2e8f0;
+    }
+    
+    .setting-desc {
+        font-size: 11px;
+        color: #64748b;
+        margin-top: 4px;
+    }
+    
+    input, select {
+        padding: 10px 16px;
+        border: 1px solid rgba(255, 107, 0, 0.3);
+        border-radius: 10px;
+        background: rgba(0, 0, 0, 0.3);
+        color: #e2e8f0;
+        font-size: 13px;
+        min-width: 250px;
+    }
+    
+    input:focus, select:focus {
+        outline: none;
+        border-color: #ff6b00;
+    }
+    
+    button {
+        background: linear-gradient(135deg, #ff6b00, #ff9f4a);
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+    
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(255, 107, 0, 0.4);
+    }
+    
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 52px;
+        height: 28px;
+    }
+    
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #334155;
+        transition: 0.3s;
+        border-radius: 28px;
+    }
+    
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 22px;
+        width: 22px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+    }
+    
+    input:checked + .slider {
+        background-color: #ff6b00;
+    }
+    
+    input:checked + .slider:before {
+        transform: translateX(24px);
+    }
+    
+    .save-btn {
+        width: 100%;
+        padding: 15px;
+        font-size: 16px;
+        margin-top: 20px;
+    }
+    
+    .status {
+        padding: 12px;
+        border-radius: 10px;
+        margin-top: 15px;
+        display: none;
+        text-align: center;
+    }
+    
+    .status.success {
+        background: rgba(16, 185, 129, 0.2);
+        color: #10b981;
+        display: block;
+    }
+    
+    .status.error {
+        background: rgba(239, 68, 68, 0.2);
+        color: #ef4444;
+        display: block;
+    }
+    
+    code {
+        background: rgb(0, 0, 0);
+        padding: 2px 6px;
+        border-radius: 5px;
+        font-size: 11px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-grid">
+    <div class="settings-card">
+        <h3>Внешний вид</h3>
+        <div class="setting-item">
+            <div>
+                <div class="setting-label">Тема оформления</div>
+                <div class="setting-desc">Темная тема включена по умолчанию</div>
+            </div>
+            <select id="themeSelect">
+                <option value="dark">Темная</option>
+                <option value="light">Светлая (экспериментально)</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="settings-card">
+        <h3>Автоматический мониторинг</h3>
+        <div class="setting-item">
+            <div>
+                <div class="setting-label">Авто-мониторинг папки</div>
+                <div class="setting-desc">Автоматически обрабатывать новые XML файлы</div>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="autoMonitoring">
+                <span class="slider"></span>
+            </label>
+        </div>
+        
+        <div class="setting-item">
+            <div>
+                <div class="setting-label">Папка для мониторинга</div>
+                <div class="setting-desc">Путь к папке с отчетами</div>
+            </div>
+            <input type="text" id="watchedFolder" style="min-width: 300px;">
+        </div>
+        
+        <div class="setting-item">
+            <div>
+                <div class="setting-label">Интервал сканирования (сек)</div>
+                <div class="setting-desc">Как часто проверять новые файлы</div>
+            </div>
+            <input type="number" id="scanInterval" min="5" max="300" style="width: 100px;">
+        </div>
+        
+        <button onclick="manualScan()">Сканировать</button>
+    </div>
+    
+    <div class="settings-card">
+        <h3>Telegram интеграция</h3>
+        <div class="setting-item">
+            <div>
+                <div class="setting-label">Включить Telegram бота</div>
+                <div class="setting-desc">Отправлять уведомления в Telegram (требуется интернет)</div>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="telegramEnabled">
+                <span class="slider"></span>
+            </label>
+        </div>
+        
+        <div class="setting-item">
+            <div>
+                <div class="setting-label">Bot Token</div>
+                <div class="setting-desc">Токен от @BotFather</div>
+            </div>
+            <input type="text" id="telegramToken" placeholder="1234567890:ABCdefGHIjklmNOPqrstUVwxyz" style="min-width: 350px;">
+        </div>
+        
+        <div class="setting-item">
+            <div>
+                <div class="setting-label">Chat ID</div>
+                <div class="setting-desc">ID чата или пользователя</div>
+            </div>
+            <input type="text" id="telegramChatId" placeholder="-1001234567890">
+        </div>
+        
+        <div class="setting-item">
+            <div>
+                <div class="setting-label">Уведомлять о новых отчетах</div>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="notifyOnNew">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+    
+    <button class="save-btn" onclick="saveSettings()">Сохранить настройки</button>
+    <div id="status" class="status"></div>
+</div>
+
+<script>
+    let currentConfig = {};
+    
+    async function loadConfig() {
+        const response = await fetch('/api/config');
+        currentConfig = await response.json();
+        
+        document.getElementById('themeSelect').value = currentConfig.theme;
+        document.getElementById('autoMonitoring').checked = currentConfig.auto_monitoring;
+        document.getElementById('watchedFolder').value = currentConfig.watched_folder;
+        document.getElementById('scanInterval').value = currentConfig.scan_interval;
+        document.getElementById('telegramEnabled').checked = currentConfig.telegram_enabled;
+        document.getElementById('telegramToken').value = currentConfig.telegram_token || '';
+        document.getElementById('telegramChatId').value = currentConfig.telegram_chat_id || '';
+        document.getElementById('notifyOnNew').checked = currentConfig.notify_on_new;
+    }
+    
+    async function saveSettings() {
+        const newConfig = {
+            theme: document.getElementById('themeSelect').value,
+            auto_monitoring: document.getElementById('autoMonitoring').checked,
+            watched_folder: document.getElementById('watchedFolder').value,
+            scan_interval: parseInt(document.getElementById('scanInterval').value),
+            telegram_enabled: document.getElementById('telegramEnabled').checked,
+            telegram_token: document.getElementById('telegramToken').value,
+            telegram_chat_id: document.getElementById('telegramChatId').value,
+            notify_on_new: document.getElementById('notifyOnNew').checked,
+            notify_on_failure: true
+        };
+        
+        try {
+            const response = await fetch('/api/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newConfig)
+            });
+            const result = await response.json();
+            if (result.success) {
+                showStatus('✅ Настройки сохранены', 'success');
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                showStatus('❌ Ошибка сохранения', 'error');
+            }
+        } catch (error) {
+            showStatus('❌ Ошибка: ' + error, 'error');
+        }
+    }
+    
+    async function manualScan() {
+        try {
+            const response = await fetch('/api/scan', { method: 'POST' });
+            const result = await response.json();
+            if (result.success) showStatus('✅ Сканирование запущено', 'success');
+        } catch (error) {
+            showStatus('❌ Ошибка сканирования', 'error');
+        }
+    }
+    
+    function showStatus(msg, type) {
+        const statusDiv = document.getElementById('status');
+        statusDiv.textContent = msg;
+        statusDiv.className = `status ${type}`;
+        setTimeout(() => {
+            statusDiv.style.display = 'none';
+            statusDiv.className = 'status';
+        }, 3000);
+    }
+    
+    loadConfig();
+</script>
+{% endblock %}
