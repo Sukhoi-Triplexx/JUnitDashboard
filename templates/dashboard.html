@@ -354,6 +354,61 @@
         border: 1px solid var(--primary);
         color: var(--primary-light);
     }
+
+    .new-reports-badge {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: var(--primary);
+        color: white;
+        padding: 12px 20px;
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        z-index: 1000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        animation: slideUp 0.3s ease;
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .new-reports-badge:hover {
+        transform: translateY(-2px);
+        background: var(--primary-dark);
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(100px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .new-reports-count {
+        background: white;
+        color: var(--primary);
+        border-radius: 20px;
+        padding: 2px 8px;
+        font-weight: bold;
+        font-size: 12px;
+    }
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
 </style>
 {% endblock %}
 
@@ -412,6 +467,16 @@
     let pendingDeleteAll = false;
     let currentSort = 'date-desc';
     let charts = {};
+    let autoUpdateInterval = null;
+    let isUpdating = false;
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     
     function exportToCSV(groupId) {
         window.open(`/api/export-csv/${groupId}`, '_blank');
@@ -710,6 +775,22 @@
         
         let sortedReports = sortReports(data.groups);
         
+        let suitesData = {};
+        const groupIds = sortedReports.map(g => g.group_id);
+        
+        try {
+            const batchResponse = await fetch('/api/reports/batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ group_ids: groupIds })
+            });
+            if (batchResponse.ok) {
+                suitesData = await batchResponse.json();
+            }
+        } catch (e) {
+            console.warn('Batch request failed:', e);
+        }
+        
         let html = '';
         for (const group of sortedReports) {
             const summary = group.combined_summary;
@@ -717,13 +798,24 @@
             const badgeClass = passRate >= 80 ? (passRate === 100 ? 'perfect' : 'good') : (passRate >= 50 ? 'warning' : 'critical');
             const statusText = passRate >= 80 ? (passRate === 100 ? 'PERFECT' : 'GOOD') : (passRate >= 50 ? 'WARNING' : 'CRITICAL');
             
+            const groupSuites = suitesData[group.group_id] || {};
+            let suitesList = '';
+            if (groupSuites.suites && groupSuites.suites.length > 0) {
+                suitesList = `
+                    <div style="margin-top: 5px; font-size: 11px; color: var(--text-secondary);">
+                         ${groupSuites.suites.join(' • ')}${groupSuites.suites_count > 3 ? ` +${groupSuites.suites_count - 3}` : ''}
+                    </div>
+                `;
+            }
+            
             html += `
                 <div class="report-item">
                     <div class="report-info" onclick="window.location.href='/report/${group.group_id}'">
                         <div class="report-name">
-                            ${group.is_auto ? '[AUTO]' : '[MANUAL]'} ${group.display_name}
+                            ${group.is_auto ? '[AUTO]' : '[MANUAL]'} ${escapeHtml(group.display_name)}
                             <span class="badge badge-${badgeClass}">${passRate}% ${statusText}</span>
                         </div>
+                        ${suitesList}
                         <div class="report-meta">
                             <span><i class="fas fa-calendar"></i> ${new Date(group.created_date).toLocaleString()}</span>
                             <span><i class="fas fa-check-circle"></i> P: ${summary?.total_passed || 0}</span>
@@ -739,7 +831,7 @@
                         <button class="export-btn" onclick="event.stopPropagation(); exportToPDF('${group.group_id}')" title="Export to PDF">
                             <i class="fas fa-file-pdf"></i> PDF
                         </button>
-                        <button class="delete-btn" onclick="event.stopPropagation(); showDeleteConfirm('${group.group_id}', '${group.display_name}')">
+                        <button class="delete-btn" onclick="event.stopPropagation(); showDeleteConfirm('${group.group_id}', '${escapeHtml(group.display_name)}')">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -834,6 +926,108 @@
         setTimeout(() => toast.remove(), 3000);
     }
     
+    async function checkForNewReports() {
+    console.log('🔄 checkForNewReports called at', new Date().toLocaleTimeString());
+    if (isUpdating) return;
+    isUpdating = true;
+    
+    const currentDateElem = document.querySelector('.stat-card.selected');
+    if (!currentDateElem) {
+        isUpdating = false;
+        return;
+    }
+    
+    const currentDate = currentDateElem.getAttribute('data-date');
+    
+    try {
+        // Принудительно запускаем сканирование папки
+        await fetch('/api/scan', { method: 'POST' });
+        console.log('Manual scan triggered');
+        
+        // Небольшая задержка, чтобы БД успела обновиться
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Теперь проверяем БД
+        const response = await fetch(`/api/reports/by-date/${currentDate}`);
+        const data = await response.json();
+        const currentReports = data.groups?.length || 0;
+        const storedReports = parseInt(sessionStorage.getItem('reports_count_' + currentDate) || '0');
+        
+        console.log('Current reports:', currentReports, 'Stored:', storedReports);
+        
+        if (currentReports > storedReports && storedReports > 0) {
+            const newCount = currentReports - storedReports;
+            showNewReportsToast(newCount);
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+        
+        sessionStorage.setItem('reports_count_' + currentDate, currentReports);
+        
+    } catch (err) {
+        console.error('Check error:', err);
+    } finally {
+        isUpdating = false;
+    }
+}
+    
+function showNewReportsToast(count) {
+    // Удаляем старое уведомление
+    const existingToast = document.querySelector('.new-reports-toast');
+    if (existingToast) existingToast.remove();
+    
+    const toast = document.createElement('div');
+    toast.className = 'new-reports-toast';
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--primary);
+        color: white;
+        padding: 14px 24px;
+        border-radius: 8px;
+        z-index: 10000;
+        animation: slideInRight 0.3s ease;
+        font-size: 14px;
+        font-weight: 500;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    `;
+    toast.innerHTML = `
+        <i class="fas fa-chart-line" style="font-size: 18px;"></i>
+        <span><strong>${count}</strong> new report${count > 1 ? 's' : ''} available</span>
+        <span>Click to update →</span>
+    `;
+    
+    toast.onclick = () => {
+        window.location.reload();
+    };
+    
+    document.body.appendChild(toast);
+    
+    // Уведомление висит 30 секунд
+    setTimeout(() => {
+        if (toast.parentNode) toast.remove();
+    }, 30000);
+}
+    
+    function startAutoUpdate() {
+        if (autoUpdateInterval) clearInterval(autoUpdateInterval);
+        autoUpdateInterval = setInterval(checkForNewReports, 30000);
+    }
+    
+    async function initDashboard() {
+        await loadDates();
+        if (fullReportsData && Object.keys(fullReportsData).length > 0) {
+            const firstDate = Object.keys(fullReportsData)[0];
+            await selectDate(firstDate);
+        }
+    }
+    
     document.getElementById('sortSelect').addEventListener('change', (e) => {
         currentSort = e.target.value;
         if (currentDate) {
@@ -841,6 +1035,7 @@
         }
     });
     
-    loadDates();
+    startAutoUpdate();
+    initDashboard();
 </script>
 {% endblock %}

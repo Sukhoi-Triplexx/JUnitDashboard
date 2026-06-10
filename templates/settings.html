@@ -9,21 +9,129 @@
         display: grid;
         gap: 25px;
     }
-    
+
+    .settings-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .save-btn-top {
+        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .save-btn-top:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Маленькие уведомления */
+    .small-toast {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: var(--card-bg);
+        border-left: 4px solid var(--primary);
+        border-radius: 8px;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 10001;
+        animation: slideInRight 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        font-size: 13px;
+    }
+
+    .small-toast.success {
+        border-left-color: #10b981;
+    }
+
+    .small-toast.error {
+        border-left-color: #ef4444;
+    }
+
+    .small-toast.info {
+        border-left-color: #3b82f6;
+    }
+
+    .small-toast i {
+        font-size: 16px;
+    }
+
+    .small-toast.success i { color: #10b981; }
+    .small-toast.error i { color: #ef4444; }
+    .small-toast.info i { color: #3b82f6; }
+
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+
+    /* Улучшенные стили для полей ввода */
+    .setting-item input,
+    .setting-item select {
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .setting-item input:focus,
+    .setting-item select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.2);
+        outline: none;
+    }
+
+    /* Карточки */
     .settings-card {
         background: var(--card-bg);
         border-radius: 16px;
         padding: 25px;
         border: 1px solid var(--border);
+        position: relative;
     }
-    
+
+    .settings-card:hover {
+        border-color: var(--primary);
+    }
+
     .settings-card h3 {
         color: var(--primary-light);
         margin-bottom: 20px;
         font-size: 13px;
         letter-spacing: 1px;
     }
-    
+
     .setting-item {
         margin-bottom: 20px;
         display: flex;
@@ -34,19 +142,19 @@
         padding: 10px 0;
         border-bottom: 1px solid var(--border);
     }
-    
+
     .setting-label {
         font-weight: 600;
         color: var(--text);
         font-size: 13px;
     }
-    
+
     .setting-desc {
         font-size: 11px;
         color: var(--text-secondary);
         margin-top: 4px;
     }
-    
+
     input, select {
         padding: 8px 12px;
         border: 1px solid var(--border);
@@ -56,7 +164,7 @@
         font-size: 12px;
         min-width: 250px;
     }
-    
+
     button {
         background: transparent;
         border: 1px solid var(--primary);
@@ -68,24 +176,24 @@
         transition: all 0.2s;
         font-size: 12px;
     }
-    
+
     button:hover {
         background: var(--hover-bg);
     }
-    
+
     .switch {
         position: relative;
         display: inline-block;
         width: 48px;
         height: 24px;
     }
-    
+
     .switch input {
         opacity: 0;
         width: 0;
         height: 0;
     }
-    
+
     .slider {
         position: absolute;
         cursor: pointer;
@@ -97,7 +205,7 @@
         transition: 0.2s;
         border-radius: 24px;
     }
-    
+
     .slider:before {
         position: absolute;
         content: "";
@@ -109,15 +217,15 @@
         transition: 0.2s;
         border-radius: 50%;
     }
-    
+
     input:checked + .slider {
         background-color: var(--primary);
     }
-    
+
     input:checked + .slider:before {
         transform: translateX(24px);
     }
-    
+
     .save-btn {
         width: 100%;
         padding: 12px;
@@ -125,7 +233,7 @@
         margin-top: 20px;
         background: rgba(255, 107, 0, 0.15);
     }
-    
+
     .status {
         padding: 10px;
         border-radius: 6px;
@@ -134,38 +242,38 @@
         text-align: center;
         font-size: 12px;
     }
-    
+
     .status.success {
         background: rgba(16, 185, 129, 0.15);
         color: #10b981;
         display: block;
     }
-    
+
     .status.error {
         background: rgba(239, 68, 68, 0.15);
         color: #ef4444;
         display: block;
     }
-    
+
     .status.info {
         background: rgba(59, 130, 246, 0.15);
         color: #3b82f6;
         display: block;
     }
-    
+
     .backup-actions {
         display: flex;
         gap: 10px;
         flex-wrap: wrap;
         margin-bottom: 20px;
     }
-    
+
     .backup-list {
         margin-top: 15px;
         max-height: 300px;
         overflow-y: auto;
     }
-    
+
     .backup-item {
         display: flex;
         justify-content: space-between;
@@ -173,38 +281,38 @@
         padding: 10px;
         border-bottom: 1px solid var(--border);
     }
-    
+
     .backup-info {
         font-size: 12px;
     }
-    
+
     .backup-name {
         font-family: monospace;
         font-size: 11px;
     }
-    
+
     .backup-actions-small {
         display: flex;
         gap: 8px;
     }
-    
+
     .backup-actions-small button {
         padding: 4px 10px;
         font-size: 10px;
     }
-    
+
     hr {
         border-color: var(--border);
         margin: 20px 0;
     }
-    
+
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
         gap: 15px;
         margin-bottom: 20px;
     }
-    
+
     .stat-card {
         background: var(--card-bg);
         border: 1px solid var(--border);
@@ -212,31 +320,31 @@
         padding: 15px;
         text-align: center;
     }
-    
+
     .stat-value {
         font-size: 24px;
         font-weight: bold;
         color: var(--primary);
     }
-    
+
     .stat-label {
         font-size: 10px;
         color: var(--text-secondary);
         text-transform: uppercase;
         margin-top: 5px;
     }
-    
+
     .pg-settings {
         margin-top: 15px;
         padding-top: 10px;
         border-top: 1px solid var(--border);
         display: none;
     }
-    
+
     .pg-settings.visible {
         display: block;
     }
-    
+
     /* Модальные окна */
     .modal {
         display: none;
@@ -250,7 +358,7 @@
         justify-content: center;
         align-items: center;
     }
-    
+
     .modal-content {
         background: var(--card-bg);
         border: 1px solid var(--primary);
@@ -262,7 +370,7 @@
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
         animation: modalFadeIn 0.3s ease;
     }
-    
+
     @keyframes modalFadeIn {
         from {
             opacity: 0;
@@ -273,13 +381,13 @@
             transform: translateY(0);
         }
     }
-    
+
     .modal-content h3 {
         color: var(--primary);
         margin-bottom: 15px;
         font-size: 1.2em;
     }
-    
+
     .modal-content .key-display {
         background: var(--bg);
         border: 1px solid var(--border);
@@ -291,58 +399,58 @@
         word-break: break-all;
         color: var(--primary-light);
     }
-    
+
     .modal-content .warning-text {
         color: #f59e0b;
         font-size: 12px;
         margin-bottom: 20px;
     }
-    
+
     .modal-buttons {
         display: flex;
         gap: 15px;
         justify-content: center;
     }
-    
+
     .modal-buttons button {
         padding: 10px 24px;
         cursor: pointer;
         border-radius: 8px;
         font-weight: 600;
     }
-    
+
     .modal-buttons .primary-btn {
         background: var(--primary);
         border: none;
         color: white;
     }
-    
+
     .modal-buttons .primary-btn:hover {
         background: var(--primary-dark);
         transform: translateY(-2px);
     }
-    
+
     .modal-buttons .danger-btn {
         background: #ef4444;
         border: none;
         color: white;
     }
-    
+
     .modal-buttons .danger-btn:hover {
         background: #dc2626;
         transform: translateY(-2px);
     }
-    
+
     .modal-buttons .secondary-btn {
         background: transparent;
         border: 1px solid var(--border);
         color: var(--text-secondary);
     }
-    
+
     .modal-buttons .secondary-btn:hover {
         background: var(--hover-bg);
     }
-    
+
     /* Всплывающие уведомления */
     .toast-notification {
         position: fixed;
@@ -358,7 +466,7 @@
         font-size: 13px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     }
-    
+
     @keyframes slideIn {
         from {
             transform: translateX(100%);
@@ -374,6 +482,14 @@
 
 {% block content %}
 <div class="settings-grid">
+    <!-- Кнопка сохранения вверху -->
+    <div class="settings-header">
+        <h2 style="margin: 0;">System Configuration</h2>
+        <button class="save-btn-top" onclick="saveSettings()">
+            <i class="fas fa-save"></i> Save All Settings
+        </button>
+    </div>
+
     <!-- Статистика системы -->
     <div class="settings-card">
         <h3><i class="fas fa-chart-line"></i> SYSTEM STATISTICS</h3>
@@ -400,7 +516,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- PostgreSQL настройки -->
     <div class="settings-card">
         <h3><i class="fas fa-database"></i> POSTGRESQL CONNECTION</h3>
@@ -455,7 +571,7 @@
             </button>
         </div>
     </div>
-    
+
     <!-- Автомониторинг -->
     <div class="settings-card">
         <h3><i class="fas fa-robot"></i> AUTO MONITORING</h3>
@@ -484,8 +600,27 @@
             <input type="number" id="scanInterval" min="5" max="300" style="width: 100px;">
         </div>
         <button onclick="manualScan()"><i class="fas fa-search"></i> SCAN NOW</button>
+        
+        <div class="setting-item">
+            <div>
+                <div class="setting-label">Auto-refresh dashboard</div>
+                <div class="setting-desc">Automatically check for new reports and update dashboard</div>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="autoRefreshEnabled">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div class="setting-item" id="refreshIntervalItem" style="display: none;">
+            <div>
+                <div class="setting-label">Refresh interval (seconds)</div>
+                <div class="setting-desc">How often to check for new reports</div>
+            </div>
+            <input type="number" id="refreshInterval" min="10" max="120" value="30" style="width: 100px;">
+        </div>
     </div>
-    
+
     <!-- Управление данными -->
     <div class="settings-card">
         <h3><i class="fas fa-database"></i> DATA MANAGEMENT</h3>
@@ -498,14 +633,14 @@
             <button onclick="createBackup()"><i class="fas fa-archive"></i> CREATE BACKUP</button>
             <button onclick="cleanupBackups()"><i class="fas fa-broom"></i> CLEANUP BACKUPS</button>
         </div>
-        
+
         <hr>
-        
+
         <div class="backup-list" id="backupList">
             <div style="text-align: center; padding: 20px;">Loading backups...</div>
         </div>
     </div>
-    
+
     <!-- Telegram -->
     <div class="settings-card">
         <h3><i class="fab fa-telegram"></i> TELEGRAM</h3>
@@ -535,7 +670,7 @@
         </div>
         <button onclick="testTelegram()"><i class="fab fa-telegram-plane"></i> TEST TELEGRAM</button>
     </div>
-    
+
     <!-- Email -->
     <div class="settings-card">
         <h3><i class="fas fa-envelope"></i> EMAIL REPORTS</h3>
@@ -581,7 +716,7 @@
         </div>
         <button onclick="testEmail()"><i class="fas fa-paper-plane"></i> TEST EMAIL</button>
     </div>
-    
+
     <!-- API ACCESS -->
     <div class="settings-card">
         <h3><i class="fas fa-key"></i> API ACCESS</h3>
@@ -604,7 +739,8 @@
             Example: <code>curl -X GET http://localhost:5000/api/v1/stats -H "X-API-Key: your_key"</code>
         </div>
     </div>
-    
+
+    <!-- Кнопка сохранения внизу (для удобства) -->
     <button class="save-btn" onclick="saveSettings()"><i class="fas fa-save"></i> SAVE ALL SETTINGS</button>
     <div id="status" class="status"></div>
 </div>
@@ -648,7 +784,32 @@
 <script>
     let currentConfig = {};
     let pendingConfirmAction = null;
-    
+
+    // Маленькое всплывающее уведомление
+    function showSmallToast(message, type = 'success') {
+        const existingToast = document.querySelector('.small-toast');
+        if (existingToast) existingToast.remove();
+
+        const toast = document.createElement('div');
+        toast.className = `small-toast ${type}`;
+        
+        let icon = 'fa-check-circle';
+        if (type === 'error') icon = 'fa-exclamation-circle';
+        if (type === 'info') icon = 'fa-info-circle';
+        
+        toast.innerHTML = `
+            <i class="fas ${icon}"></i>
+            <span>${message}</span>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
     // PostgreSQL тумблер
     document.getElementById('postgresEnabled').addEventListener('change', function() {
         const pgSettings = document.getElementById('pgSettings');
@@ -658,8 +819,8 @@
             pgSettings.classList.remove('visible');
         }
     });
-    
-    // Универсальная функция уведомлений в статус-бар
+
+    // Уведомление в статус-бар (для важных сообщений)
     function showNotification(message, type) {
         const statusDiv = document.getElementById('status');
         if (!statusDiv) return;
@@ -673,24 +834,7 @@
             statusDiv.className = 'status';
         }, 5000);
     }
-    
-    // Всплывающее уведомление (тост)
-    function showToast(message, type = 'info') {
-        const existingToast = document.querySelector('.toast-notification');
-        if (existingToast) existingToast.remove();
-        
-        const toast = document.createElement('div');
-        toast.className = 'toast-notification';
-        toast.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-database'}" style="color: ${type === 'success' ? '#10b981' : 'var(--primary)'}"></i>
-                <span>${message}</span>
-            </div>
-        `;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
-    }
-    
+
     // Функция для показа модального окна подтверждения
     function showConfirmModal(message, onConfirm) {
         const modal = document.getElementById('confirmModal');
@@ -725,7 +869,7 @@
             if (e.target === modal) closeModal();
         });
     }
-    
+
     // Тест подключения PostgreSQL
     async function testPostgresConnection() {
         const host = document.getElementById('pgHost').value;
@@ -735,11 +879,11 @@
         const password = document.getElementById('pgPassword').value;
         
         if (!host || !database || !user) {
-            showNotification('❌ Please fill in host, database and username', 'error');
+            showSmallToast('Please fill in host, database and username', 'error');
             return;
         }
         
-        showNotification('🔄 Testing PostgreSQL connection...', 'info');
+        showSmallToast('Testing PostgreSQL connection...', 'info');
         
         try {
             const response = await fetch('/api/test-postgres', {
@@ -756,18 +900,15 @@
             const result = await response.json();
             
             if (result.success) {
-                showNotification('✅ PostgreSQL connection successful!', 'success');
-                showToast('🎉 Database is ready to use!', 'success');
+                showSmallToast('PostgreSQL connection successful!', 'success');
             } else {
-                showNotification('❌ Connection failed: ' + result.error, 'error');
-                showToast('⚠️ Check your PostgreSQL settings!', 'error');
+                showSmallToast('Connection failed: ' + result.error, 'error');
             }
         } catch (error) {
-            showNotification('❌ Cannot reach PostgreSQL server: ' + error, 'error');
-            showToast('🔌 PostgreSQL server is not responding!', 'error');
+            showSmallToast('Cannot reach PostgreSQL server: ' + error, 'error');
         }
     }
-    
+
     async function loadStats() {
         try {
             const response = await fetch('/api/stats');
@@ -781,7 +922,7 @@
             console.error('Stats error:', error);
         }
     }
-    
+
     async function loadBackups() {
         try {
             const response = await fetch('/api/backups/list');
@@ -814,7 +955,7 @@
             console.error('Backups error:', error);
         }
     }
-    
+
     async function loadConfig() {
         const response = await fetch('/api/config');
         currentConfig = await response.json();
@@ -843,8 +984,18 @@
         if (currentConfig.postgres_enabled) {
             document.getElementById('pgSettings').classList.add('visible');
         }
+
+        // Загрузка настроек автообновления
+        const autoRefreshCheckbox = document.getElementById('autoRefreshEnabled');
+        const refreshIntervalItem = document.getElementById('refreshIntervalItem');
+        
+        if (autoRefreshCheckbox) {
+            autoRefreshCheckbox.checked = currentConfig.auto_refresh_enabled || false;
+            refreshIntervalItem.style.display = autoRefreshCheckbox.checked ? 'flex' : 'none';
+            document.getElementById('refreshInterval').value = currentConfig.refresh_interval || 30;
+        }
     }
-    
+
     async function saveSettings() {
         const newConfig = {
             auto_monitoring: document.getElementById('autoMonitoring').checked,
@@ -864,7 +1015,9 @@
             pg_port: parseInt(document.getElementById('pgPort').value) || 5432,
             pg_database: document.getElementById('pgDatabase').value,
             pg_user: document.getElementById('pgUser').value,
-            pg_password: document.getElementById('pgPassword').value
+            pg_password: document.getElementById('pgPassword').value,
+            auto_refresh_enabled: document.getElementById('autoRefreshEnabled')?.checked || false,
+            refresh_interval: parseInt(document.getElementById('refreshInterval')?.value) || 30
         };
         
         try {
@@ -875,85 +1028,84 @@
             });
             const result = await response.json();
             if (result.success) {
-                showNotification('✅ ALL SETTINGS SAVED', 'success');
-                showToast('Settings saved successfully!', 'success');
+                showSmallToast('Settings saved successfully!', 'success');
                 if (newConfig.postgres_enabled) {
-                    showNotification('⚠️ Restart VUnit to switch to PostgreSQL', 'info');
+                    showSmallToast('Restart VUnit to switch to PostgreSQL', 'info');
                 }
             } else {
-                showNotification('❌ ERROR saving settings', 'error');
+                showSmallToast('Error saving settings', 'error');
             }
         } catch (error) {
-            showNotification('❌ ERROR: ' + error, 'error');
+            showSmallToast('Error: ' + error, 'error');
         }
     }
-    
+
     async function createBackup() {
         try {
             const response = await fetch('/api/backup', { method: 'POST' });
             const result = await response.json();
             if (result.success) {
-                showNotification(result.message, 'success');
+                showSmallToast(result.message, 'success');
                 loadBackups();
             } else {
-                showNotification('BACKUP FAILED', 'error');
+                showSmallToast('Backup failed', 'error');
             }
         } catch (error) {
-            showNotification('ERROR: ' + error, 'error');
+            showSmallToast('Error: ' + error, 'error');
         }
     }
-    
+
     async function cleanupBackups() {
         showConfirmModal('Delete old backups (keep last 10)?', async () => {
             try {
                 const response = await fetch('/api/backup/cleanup', { method: 'POST' });
                 const result = await response.json();
-                showNotification(`Deleted ${result.deleted} old backups`, 'success');
+                showSmallToast(`Deleted ${result.deleted} old backups`, 'success');
                 loadBackups();
             } catch (error) {
-                showNotification('ERROR: ' + error, 'error');
+                showSmallToast('Error: ' + error, 'error');
             }
         });
     }
-    
+
     async function downloadBackup(filename) {
         window.location.href = `/api/backup/download/${filename}`;
     }
-    
+
     async function restoreBackup(filename) {
         showConfirmModal(`Restore from ${filename}? Current data will be overwritten.`, async () => {
             try {
                 const response = await fetch(`/api/backup/restore/${filename}`, { method: 'POST' });
                 const result = await response.json();
                 if (result.success) {
-                    showNotification(result.message, 'success');
+                    showSmallToast(result.message, 'success');
                     setTimeout(() => window.location.reload(), 1500);
                 } else {
-                    showNotification('RESTORE FAILED', 'error');
+                    showSmallToast('Restore failed', 'error');
                 }
             } catch (error) {
-                showNotification('ERROR: ' + error, 'error');
+                showSmallToast('Error: ' + error, 'error');
             }
         });
     }
-    
+
     async function deleteBackup(filename) {
         showConfirmModal(`Delete backup ${filename}?`, async () => {
             try {
                 const response = await fetch(`/api/backup/delete/${filename}`, { method: 'DELETE' });
                 const result = await response.json();
                 if (result.success) {
-                    showNotification(result.message, 'success');
+                    showSmallToast(result.message, 'success');
                     loadBackups();
                 } else {
-                    showNotification('DELETE FAILED', 'error');
+                    showSmallToast('Delete failed', 'error');
                 }
             } catch (error) {
-                showNotification('ERROR: ' + error, 'error');
+                showSmallToast('Error: ' + error, 'error');
             }
         });
     }
-    
+
     async function exportData() {
         try {
             const response = await fetch('/api/export');
@@ -965,12 +1117,12 @@
             a.download = `vunit_export_${new Date().toISOString().slice(0,19)}.json`;
             a.click();
             URL.revokeObjectURL(url);
-            showNotification('EXPORT COMPLETED', 'success');
+            showSmallToast('Export completed', 'success');
         } catch (error) {
-            showNotification('EXPORT FAILED', 'error');
+            showSmallToast('Export failed', 'error');
         }
     }
-    
+
     async function importData() {
         const input = document.createElement('input');
         input.type = 'file';
@@ -986,62 +1138,61 @@
                     body: JSON.stringify(data)
                 });
                 if (response.ok) {
-                    showNotification('IMPORT COMPLETED, reloading...', 'success');
+                    showSmallToast('Import completed, reloading...', 'success');
                     setTimeout(() => window.location.reload(), 1500);
                 } else {
-                    showNotification('IMPORT FAILED', 'error');
+                    showSmallToast('Import failed', 'error');
                 }
             } catch (error) {
-                showNotification('INVALID FILE', 'error');
+                showSmallToast('Invalid file', 'error');
             }
         };
         input.click();
     }
-    
+
     async function cleanupOldReports() {
         showConfirmModal('Delete reports older than 30 days? This cannot be undone.', async () => {
             try {
                 const response = await fetch('/api/cleanup', { method: 'DELETE' });
                 const result = await response.json();
-                showNotification(result.message, 'success');
+                showSmallToast(result.message, 'success');
                 loadStats();
             } catch (error) {
-                showNotification('CLEANUP FAILED', 'error');
+                showSmallToast('Cleanup failed', 'error');
             }
         });
     }
-    
+
     async function manualScan() {
         try {
             const response = await fetch('/api/scan', { method: 'POST' });
             const result = await response.json();
-            showNotification('SCAN STARTED', 'success');
+            showSmallToast('Scan started', 'success');
         } catch (error) {
-            showNotification('SCAN ERROR', 'error');
+            showSmallToast('Scan error', 'error');
         }
     }
-    
+
     async function testTelegram() {
-        showNotification('Testing Telegram...', 'info');
-        setTimeout(() => showNotification('Check your Telegram!', 'success'), 1000);
+        showSmallToast('Testing Telegram...', 'info');
+        setTimeout(() => showSmallToast('Check your Telegram!', 'success'), 1000);
     }
-    
+
     async function testEmail() {
-        showNotification('Sending test email...', 'info');
+        showSmallToast('Sending test email...', 'info');
         try {
             const response = await fetch('/api/test-email', { method: 'POST' });
             const result = await response.json();
             if (result.success) {
-                showNotification('Test email sent!', 'success');
-                showToast('📧 Check your inbox!', 'success');
+                showSmallToast('Test email sent!', 'success');
             } else {
-                showNotification('Email failed', 'error');
+                showSmallToast('Email failed', 'error');
             }
         } catch (error) {
-            showNotification('Email error', 'error');
+            showSmallToast('Email error', 'error');
         }
     }
-    
+
     // API Keys functions
     async function loadApiKeys() {
         try {
@@ -1078,7 +1229,7 @@
             if (container) container.innerHTML = '<div style="text-align: center; padding: 15px; color: #ef4444;">Failed to load API keys</div>';
         }
     }
-    
+
     async function generateApiKey() {
         try {
             const response = await fetch('/api/v1/keys/generate', { method: 'POST' });
@@ -1095,8 +1246,7 @@
                 
                 const copyHandler = () => {
                     navigator.clipboard.writeText(data.key);
-                    showNotification('✅ API key copied to clipboard!', 'success');
-                    showToast('Key copied! Store it safely.', 'success');
+                    showSmallToast('API key copied to clipboard!', 'success');
                 };
                 
                 const closeHandler = () => {
@@ -1118,30 +1268,40 @@
                 
                 loadApiKeys();
             } else {
-                showNotification('Failed to generate key', 'error');
+                showSmallToast('Failed to generate key', 'error');
             }
         } catch (error) {
-            showNotification('Error: ' + error, 'error');
+            showSmallToast('Error: ' + error, 'error');
         }
     }
-    
+
     async function revokeApiKey(keyId) {
-        showConfirmModal('⚠️ Revoke this API key? Any applications using it will lose access.', async () => {
+        showConfirmModal('Revoke this API key? Any applications using it will lose access.', async () => {
             try {
                 const response = await fetch(`/api/v1/keys/${keyId}`, { method: 'DELETE' });
                 const data = await response.json();
                 if (data.success) {
-                    showNotification('✅ API key revoked', 'success');
+                    showSmallToast('API key revoked', 'success');
                     loadApiKeys();
                 } else {
-                    showNotification('Failed to revoke key', 'error');
+                    showSmallToast('Failed to revoke key', 'error');
                 }
             } catch (error) {
-                showNotification('Error: ' + error, 'error');
+                showSmallToast('Error: ' + error, 'error');
             }
         });
     }
-    
+
+    // Обработчик изменения тумблера автообновления
+    const autoRefreshCheckbox = document.getElementById('autoRefreshEnabled');
+    const refreshIntervalItem = document.getElementById('refreshIntervalItem');
+
+    if (autoRefreshCheckbox) {
+        autoRefreshCheckbox.addEventListener('change', (e) => {
+            refreshIntervalItem.style.display = e.target.checked ? 'flex' : 'none';
+        });
+    }
+
     // Initialize all
     loadStats();
     loadBackups();

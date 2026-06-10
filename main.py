@@ -590,7 +590,9 @@ def load_config():
         'pg_port': 5432,
         'pg_database': 'vunit',
         'pg_user': 'postgres',
-        'pg_password': ''
+        'pg_password': '',
+        'auto_refresh_enabled': True,
+        'refresh_interval': 30
     }
     
     if os.path.exists(CONFIG_PATH):
@@ -766,33 +768,96 @@ def process_file(filepath):
         return None
 
 def scan_watched_folder():
+    """Сканирует папку и обрабатывает новые XML файлы"""
     if not config['auto_monitoring']:
         return
     
     watched_path = normalize_path(config['watched_folder'])
     if not os.path.exists(watched_path):
+        print(f"⚠️ Watched folder does not exist: {watched_path}")
         return
     
     try:
-        files = [os.path.join(watched_path, f) for f in os.listdir(watched_path) if f.lower().endswith('.xml')]
+        # Получаем все XML файлы с их modification time
+        all_files = []
+        for root, dirs, files in os.walk(watched_path):
+            for file in files:
+                if file.lower().endswith('.xml'):
+                    filepath = os.path.join(root, file)
+                    all_files.append({
+                        'path': filepath,
+                        'name': file,
+                        'mtime': os.path.getmtime(filepath),
+                        'size': os.path.getsize(filepath)
+                    })
+        
+        if not all_files:
+            print(f"📁 No XML files found in {watched_path}")
+            return
+        
+        #print(f"🔍 Scanning {len(all_files)} XML files in {watched_path}")
         
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        for filepath in files:
-            file_hash = get_file_hash(filepath)
-            if USE_POSTGRES:
-                cursor.execute('SELECT 1 FROM processed_files WHERE file_hash = %s', (file_hash,))
-            else:
-                cursor.execute('SELECT 1 FROM processed_files WHERE file_hash = ?', (file_hash,))
+        new_files = []
+        
+        for file_info in all_files:
+            filepath = file_info['path']
             
-            if not cursor.fetchone():
-                print(f"📄 Found new file: {os.path.basename(filepath)}")
-                process_file(filepath)
+            # Получаем хэш файла
+            file_hash = get_file_hash(filepath)
+            
+            # Проверяем, существует ли файл в processed_files
+            if USE_POSTGRES:
+                cursor.execute('SELECT file_path, file_hash, processed_date FROM processed_files WHERE file_path = %s', (filepath,))
+            else:
+                cursor.execute('SELECT file_path, file_hash, processed_date FROM processed_files WHERE file_path = ?', (filepath,))
+            
+            existing = cursor.fetchone()
+            
+            if not existing:
+                # Файл вообще не обработан
+                new_files.append(file_info)
+               # print(f"  🆕 New file (not in DB): {file_info['name']}")
+            else:
+                # Проверяем, изменился ли файл
+                existing_hash = existing[1] if USE_POSTGRES else existing[1]
+                if existing_hash != file_hash:
+                    # Файл изменился - нужно обработать заново
+                    new_files.append(file_info)
+                    #print(f"  🔄 Changed file: {file_info['name']} (hash mismatch)")
+                else:
+                    # Файл уже обработан и не менялся
+                    print(f"  ⏭️ Already processed: {file_info['name']}")
+        
+        #print(f"📊 Found: {len(new_files)} new/changed files, {len(all_files) - len(new_files)} unchanged")
+        
+        # Обрабатываем новые файлы
+        if new_files:
+            print(f"📄 Processing {len(new_files)} files...")
+            for file_info in new_files:
+                print(f"  → {file_info['name']}")
+                group_id = process_file(file_info['path'])
+                if group_id:
+                    print(f"    ✅ Processed successfully, group_id: {group_id}")
+                else:
+                    print(f"    ❌ Failed to process")
+            
+            # Принудительно обновляем кэш дат в браузере
+            try:
+                # Можно отправить уведомление через WebSocket или просто записать в лог
+                print(f"📢 New reports available: {len(new_files)} file(s)")
+            except:
+                pass
+        else:
+            print("✅ No new or changed files found")
         
         return_db_connection(conn)
+        
     except Exception as e:
         print(f"⚠️ Scan error: {e}")
+        traceback.print_exc()
 
 monitoring_active = False
 monitoring_thread = None
@@ -1169,14 +1234,16 @@ def get_report_data(group_id):
 
 @app.route('/api/delete-report/<group_id>', methods=['DELETE'])
 def delete_report(group_id):
+    """Удаляет отчет из БД и физические файлы из папки"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
+        # Сначала получаем информацию об отчете и связанных файлах
         if USE_POSTGRES:
-            cursor.execute('SELECT display_name FROM report_groups WHERE group_id = %s', (group_id,))
+            cursor.execute('SELECT display_name, group_data FROM report_groups WHERE group_id = %s', (group_id,))
         else:
-            cursor.execute('SELECT display_name FROM report_groups WHERE group_id = ?', (group_id,))
+            cursor.execute('SELECT display_name, group_data FROM report_groups WHERE group_id = ?', (group_id,))
         
         report = cursor.fetchone()
         
@@ -1184,6 +1251,34 @@ def delete_report(group_id):
             return_db_connection(conn)
             return jsonify({'error': 'Report not found'}), 404
         
+        display_name = report[0]
+        
+        # Находим связанные файлы
+        if USE_POSTGRES:
+            cursor.execute('SELECT file_path FROM processed_files WHERE group_id = %s', (group_id,))
+        else:
+            cursor.execute('SELECT file_path FROM processed_files WHERE group_id = ?', (group_id,))
+        
+        files_to_delete = cursor.fetchall()
+        
+        # Удаляем физические файлы из watched_folder
+        deleted_files = []
+        failed_deletes = []
+        
+        for file_row in files_to_delete:
+            file_path = file_row[0] if USE_POSTGRES else file_row[0]
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                    deleted_files.append(os.path.basename(file_path))
+                    print(f"🗑️ Deleted file: {file_path}")
+                except Exception as e:
+                    failed_deletes.append({'file': os.path.basename(file_path), 'error': str(e)})
+                    print(f"❌ Failed to delete {file_path}: {e}")
+            else:
+                print(f"⚠️ File not found (already deleted): {file_path}")
+        
+        # Удаляем записи из БД
         if USE_POSTGRES:
             cursor.execute('DELETE FROM report_groups WHERE group_id = %s', (group_id,))
             cursor.execute('DELETE FROM processed_files WHERE group_id = %s', (group_id,))
@@ -1194,37 +1289,83 @@ def delete_report(group_id):
         conn.commit()
         return_db_connection(conn)
         
-        audit_log(None, 'delete', f'Deleted report: {report[0]}', request.remote_addr)
-        return jsonify({'success': True, 'message': f'Report deleted'})
+        audit_log(None, 'delete', f'Deleted report: {display_name} (files: {len(deleted_files)})', request.remote_addr)
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Report "{display_name}" deleted',
+            'deleted_files': deleted_files,
+            'deleted_count': len(deleted_files),
+            'failed_deletes': failed_deletes
+        })
         
     except Exception as e:
         print(f"❌ Delete error: {e}")
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
+
+# Замените существующую функцию delete_all_reports на эту:
 
 @app.route('/api/delete-all-reports', methods=['DELETE'])
 def delete_all_reports():
+    """Удаляет ВСЕ отчеты из БД и ВСЕ файлы из папки"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
+        # Получаем все файлы для удаления
+        if USE_POSTGRES:
+            cursor.execute('SELECT file_path FROM processed_files')
+        else:
+            cursor.execute('SELECT file_path FROM processed_files')
+        
+        all_files = cursor.fetchall()
+        
+        # Получаем статистику
         if USE_POSTGRES:
             cursor.execute('SELECT COUNT(*) FROM report_groups')
-            count = cursor.fetchone()[0]
+            report_count = cursor.fetchone()[0]
+        else:
+            cursor.execute('SELECT COUNT(*) FROM report_groups')
+            report_count = cursor.fetchone()[0]
+        
+        # Удаляем физические файлы
+        deleted_files = []
+        failed_deletes = []
+        
+        for file_row in all_files:
+            file_path = file_row[0] if USE_POSTGRES else file_row[0]
+            if os.path.exists(file_path):
+                try:
+                    os.remove(file_path)
+                    deleted_files.append(os.path.basename(file_path))
+                except Exception as e:
+                    failed_deletes.append({'file': os.path.basename(file_path), 'error': str(e)})
+        
+        # Очищаем таблицы БД
+        if USE_POSTGRES:
             cursor.execute('DELETE FROM report_groups')
             cursor.execute('DELETE FROM processed_files')
         else:
-            cursor.execute('SELECT COUNT(*) FROM report_groups')
-            count = cursor.fetchone()[0]
             cursor.execute('DELETE FROM report_groups')
             cursor.execute('DELETE FROM processed_files')
         
         conn.commit()
         return_db_connection(conn)
         
-        audit_log(None, 'delete_all', f'Deleted all {count} reports', request.remote_addr)
-        return jsonify({'success': True, 'message': f'Deleted {count} reports'})
+        audit_log(None, 'delete_all', f'Deleted all {report_count} reports and {len(deleted_files)} files', request.remote_addr)
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Deleted {report_count} reports and {len(deleted_files)} files',
+            'deleted_files_count': len(deleted_files),
+            'failed_deletes': failed_deletes
+        })
         
     except Exception as e:
+        print(f"❌ Delete all error: {e}")
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/export-csv/<group_id>', methods=['GET'])
@@ -1849,6 +1990,245 @@ def postgres_config():
             os.environ['DATABASE_URL'] = f"postgresql://{config['pg_user']}:{config['pg_password']}@{config['pg_host']}:{config['pg_port']}/{config['pg_database']}"
         
         return jsonify({'success': True, 'config': config})
+    
+# ========== DATA EXPORT/IMPORT ==========
+
+@app.route('/api/export', methods=['GET'])
+def export_all_data():
+    """Экспорт всех данных в JSON"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Получаем все отчёты
+        if USE_POSTGRES:
+            cursor.execute('SELECT group_id, created_date, created_date_str, group_data, file_count, combined_summary, is_auto, display_name FROM report_groups')
+        else:
+            cursor.execute('SELECT group_id, created_date, created_date_str, group_data, file_count, combined_summary, is_auto, display_name FROM report_groups')
+        
+        reports = cursor.fetchall()
+        
+        # Получаем обработанные файлы
+        if USE_POSTGRES:
+            cursor.execute('SELECT file_path, file_hash, processed_date, group_id, file_size FROM processed_files')
+        else:
+            cursor.execute('SELECT file_path, file_hash, processed_date, group_id, file_size FROM processed_files')
+        
+        processed = cursor.fetchall()
+        
+        return_db_connection(conn)
+        
+        export_data = {
+            'export_date': datetime.now().isoformat(),
+            'version': '1.0',
+            'reports': [
+                {
+                    'group_id': r[0],
+                    'created_date': r[1],
+                    'created_date_str': r[2],
+                    'group_data': json.loads(r[3]) if isinstance(r[3], str) else r[3],
+                    'file_count': r[4],
+                    'combined_summary': json.loads(r[5]) if isinstance(r[5], str) else r[5],
+                    'is_auto': bool(r[6]),
+                    'display_name': r[7]
+                }
+                for r in reports
+            ],
+            'processed_files': [
+                {
+                    'file_path': p[0],
+                    'file_hash': p[1],
+                    'processed_date': p[2],
+                    'group_id': p[3],
+                    'file_size': p[4]
+                }
+                for p in processed
+            ]
+        }
+        
+        return jsonify(export_data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/import', methods=['POST'])
+def import_all_data():
+    """Импорт данных из JSON"""
+    try:
+        data = request.json
+        
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        # Проверяем структуру (может быть как полный экспорт, так и просто массив reports)
+        reports = data.get('reports', [])
+        if not reports and isinstance(data, list):
+            reports = data
+        
+        if not reports:
+            return jsonify({'error': 'Invalid data format: missing reports array'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        imported_count = 0
+        for report in reports:
+            # Извлекаем данные с проверкой
+            group_id = report.get('group_id')
+            if not group_id:
+                continue
+            
+            created_date = report.get('created_date', datetime.now().isoformat())
+            created_date_str = report.get('created_date_str', datetime.now().strftime('%Y-%m-%d'))
+            group_data = report.get('group_data', {})
+            file_count = report.get('file_count', 0)
+            combined_summary = report.get('combined_summary', {})
+            is_auto = report.get('is_auto', False)
+            display_name = report.get('display_name', '')
+            pass_rate = combined_summary.get('pass_rate', 0)
+            total_tests = combined_summary.get('total_tests', 0)
+            
+            if USE_POSTGRES:
+                cursor.execute('''
+                    INSERT INTO report_groups 
+                    (group_id, created_date, created_date_str, group_data, file_count, combined_summary, is_auto, display_name, pass_rate, total_tests)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (group_id) DO UPDATE SET
+                        group_data = EXCLUDED.group_data,
+                        combined_summary = EXCLUDED.combined_summary,
+                        display_name = EXCLUDED.display_name,
+                        pass_rate = EXCLUDED.pass_rate,
+                        total_tests = EXCLUDED.total_tests
+                ''', (
+                    group_id, created_date, created_date_str,
+                    json.dumps(group_data), file_count,
+                    json.dumps(combined_summary), is_auto, display_name,
+                    pass_rate, total_tests
+                ))
+            else:
+                cursor.execute('''
+                    INSERT OR REPLACE INTO report_groups 
+                    (group_id, created_date, created_date_str, group_data, file_count, combined_summary, is_auto, display_name, pass_rate, total_tests)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (
+                    group_id, created_date, created_date_str,
+                    json.dumps(group_data), file_count,
+                    json.dumps(combined_summary), 1 if is_auto else 0, display_name,
+                    pass_rate, total_tests
+                ))
+            imported_count += 1
+        
+        # Импортируем обработанные файлы, если есть
+        processed_files = data.get('processed_files', [])
+        for pf in processed_files:
+            file_path = pf.get('file_path')
+            if not file_path:
+                continue
+                
+            file_hash = pf.get('file_hash', '')
+            processed_date = pf.get('processed_date', datetime.now().isoformat())
+            group_id = pf.get('group_id', '')
+            file_size = pf.get('file_size', 0)
+            
+            if USE_POSTGRES:
+                cursor.execute('''
+                    INSERT INTO processed_files (file_path, file_hash, processed_date, group_id, file_size)
+                    VALUES (%s, %s, %s, %s, %s)
+                    ON CONFLICT (file_path) DO UPDATE SET
+                        processed_date = EXCLUDED.processed_date,
+                        file_hash = EXCLUDED.file_hash
+                ''', (file_path, file_hash, processed_date, group_id, file_size))
+            else:
+                cursor.execute('''
+                    INSERT OR REPLACE INTO processed_files (file_path, file_hash, processed_date, group_id, file_size)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (file_path, file_hash, processed_date, group_id, file_size))
+        
+        conn.commit()
+        return_db_connection(conn)
+        
+        return jsonify({'success': True, 'message': f'Imported {imported_count} reports'})
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    
+@app.route('/api/cleanup', methods=['DELETE'])
+def cleanup_old_reports():
+    """Удаляет отчеты старше 30 дней"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cutoff_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
+        
+        if USE_POSTGRES:
+            cursor.execute('DELETE FROM report_groups WHERE created_date_str < %s', (cutoff_date,))
+        else:
+            cursor.execute('DELETE FROM report_groups WHERE created_date_str < ?', (cutoff_date,))
+        
+        deleted_count = cursor.rowcount
+        conn.commit()
+        return_db_connection(conn)
+        
+        return jsonify({'success': True, 'message': f'Deleted {deleted_count} old reports'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+@app.route('/api/reports/batch', methods=['POST'])
+def get_reports_batch():
+    """Получение данных нескольких отчётов за один запрос"""
+    try:
+        data = request.json
+        group_ids = data.get('group_ids', [])
+        
+        if not group_ids:
+            return jsonify({'error': 'No group_ids provided'}), 400
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        results = {}
+        for group_id in group_ids:
+            if USE_POSTGRES:
+                cursor.execute('SELECT group_data FROM report_groups WHERE group_id = %s', (group_id,))
+            else:
+                cursor.execute('SELECT group_data FROM report_groups WHERE group_id = ?', (group_id,))
+            
+            row = cursor.fetchone()
+            if row:
+                group_data = json.loads(row[0]) if isinstance(row[0], str) else row[0]
+                suites = []
+                for report in group_data.get('reports', []):
+                    for suite in report.get('suites', []):
+                        suite_name = suite.get('name')
+                        if suite_name and suite_name != 'unknown':
+                            suites.append(suite_name)
+                
+                # Убираем дубликаты
+                unique_suites = list(set(suites))
+                results[group_id] = {
+                    'suites': unique_suites[:3],
+                    'suites_count': len(unique_suites)
+                }
+            else:
+                results[group_id] = {'suites': [], 'suites_count': 0}
+        
+        return_db_connection(conn)
+        return jsonify(results)
+        
+    except Exception as e:
+        print(f"Batch error: {e}")
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+    
+@app.route('/api/debug/groups')
+def debug_groups():
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT group_id, display_name FROM report_groups')
+    rows = cursor.fetchall()
+    return_db_connection(conn)
+    return jsonify([{'group_id': r[0], 'display_name': r[1]} for r in rows])
 
 if __name__ == '__main__':
     print("=" * 60)
