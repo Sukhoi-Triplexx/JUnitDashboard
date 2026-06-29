@@ -5,96 +5,8 @@
 
 {% block extra_css %}
 <style>
-    /* Предыдущие стили остаются, добавим новые для таблицы ошибок с разворачиванием */
+    /* Стили используют CSS переменные, которые меняются в зависимости от темы */
     
-    .errors-table tr {
-        cursor: pointer;
-    }
-    
-    .errors-table tr:hover {
-        background: rgba(255, 107, 0, 0.08);
-    }
-    
-    .error-detail-row {
-        display: none;
-        background: rgba(0, 0, 0, 0.4);
-    }
-    
-    .error-detail-row.open {
-        display: table-row;
-    }
-    
-    .error-detail-cell {
-        padding: 15px 20px !important;
-        border-top: 1px solid rgba(255, 107, 0, 0.2);
-    }
-    
-    .error-full-message {
-        background: rgba(239, 68, 68, 0.1);
-        padding: 12px 15px;
-        border-radius: 8px;
-        margin-bottom: 15px;
-        border-left: 3px solid #ef4444;
-        font-size: 12px;
-        line-height: 1.5;
-        color: #f87171;
-        word-break: break-word;
-    }
-    
-    .error-full-traceback {
-        background: #0a0a0a;
-        padding: 15px;
-        border-radius: 8px;
-        font-family: 'Courier New', 'Consolas', monospace;
-        font-size: 11px;
-        line-height: 1.5;
-        overflow-x: auto;
-        white-space: pre-wrap;
-        word-break: break-word;
-        border: 1px solid rgba(255, 107, 0, 0.2);
-        max-height: 300px;
-        overflow-y: auto;
-        color: #cbd5e1;
-    }
-    
-    .error-full-traceback::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-    }
-    
-    .expand-icon {
-        display: inline-block;
-        font-size: 12px;
-        margin-right: 8px;
-        color: #ff6b00;
-    }
-    
-    .error-message-preview {
-        max-width: 300px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        color: #f87171;
-    }
-    
-    .badge-status {
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 10px;
-        font-weight: 600;
-    }
-    
-    .badge-failed {
-        background: rgba(239, 68, 68, 0.2);
-        color: #ef4444;
-    }
-    
-    .badge-error {
-        background: rgba(245, 158, 11, 0.2);
-        color: #f59e0b;
-    }
-    
-    /* Остальные стили как были */
     .summary-cards {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -103,18 +15,18 @@
     }
     
     .card {
-        background: rgba(15, 23, 42, 0.6);
+        background: var(--card-bg);
         backdrop-filter: blur(10px);
         border-radius: 12px;
         padding: 20px;
         text-align: center;
-        border: 1px solid rgba(255, 107, 0, 0.2);
+        border: 1px solid var(--border);
         transition: all 0.2s;
     }
     
     .card:hover {
         transform: translateY(-2px);
-        border-color: #ff6b00;
+        border-color: var(--primary);
     }
     
     .card-value {
@@ -125,7 +37,7 @@
     
     .card-label {
         font-size: 11px;
-        color: #94a3b8;
+        color: var(--text-secondary);
         text-transform: uppercase;
         letter-spacing: 1px;
         font-weight: 500;
@@ -134,7 +46,7 @@
     .card.passed .card-value { color: #10b981; }
     .card.failed .card-value { color: #ef4444; }
     .card.errors .card-value { color: #f59e0b; }
-    .card.rate .card-value { color: #ff6b00; }
+    .card.rate .card-value { color: var(--primary); }
     
     .charts-container {
         display: grid;
@@ -144,14 +56,14 @@
     }
     
     .chart-box {
-        background: rgba(15, 23, 42, 0.4);
+        background: var(--card-bg);
         border-radius: 12px;
         padding: 20px;
-        border: 1px solid rgba(255, 107, 0, 0.2);
+        border: 1px solid var(--border);
     }
     
     .chart-box h3 {
-        color: #ff9f4a;
+        color: var(--primary-light);
         margin-bottom: 15px;
         font-size: 12px;
         font-weight: 600;
@@ -159,7 +71,7 @@
     }
     
     .toolbar {
-        background: rgba(15, 23, 42, 0.4);
+        background: var(--card-bg);
         border-radius: 12px;
         padding: 15px 20px;
         margin-bottom: 20px;
@@ -168,7 +80,7 @@
         align-items: center;
         flex-wrap: wrap;
         gap: 15px;
-        border: 1px solid rgba(255, 107, 0, 0.2);
+        border: 1px solid var(--border);
         position: sticky;
         top: 0;
         z-index: 100;
@@ -190,17 +102,17 @@
     
     .search-box {
         padding: 8px 12px;
-        border: 1px solid rgba(255, 107, 0, 0.25);
+        border: 1px solid var(--border);
         border-radius: 8px;
-        background: rgba(0, 0, 0, 0.5);
-        color: #e2e8f0;
+        background: var(--bg);
+        color: var(--text);
         width: 250px;
         font-size: 12px;
     }
     
     .search-box:focus {
         outline: none;
-        border-color: #ff6b00;
+        border-color: var(--primary);
     }
     
     .open-new-btn, .export-btn {
@@ -213,9 +125,9 @@
     }
     
     .open-new-btn {
-        border: 1px solid #ff6b00;
+        border: 1px solid var(--primary);
         background: transparent;
-        color: #ff9f4a;
+        color: var(--primary-light);
     }
     
     .open-new-btn:hover {
@@ -253,29 +165,29 @@
     }
     
     .scroll-container::-webkit-scrollbar-track {
-        background: #0a0a0a;
+        background: var(--bg);
     }
     
     .scroll-container::-webkit-scrollbar-thumb {
-        background: #ff6b00;
+        background: var(--primary);
         border-radius: 3px;
     }
     
     .file-card {
-        background: rgba(15, 23, 42, 0.4);
+        background: var(--card-bg);
         border-radius: 12px;
         margin-bottom: 16px;
         overflow: hidden;
-        border: 1px solid rgba(255, 107, 0, 0.15);
+        border: 1px solid var(--border);
         transition: all 0.2s;
     }
     
     .file-card:hover {
-        border-color: rgba(255, 107, 0, 0.4);
+        border-color: var(--primary);
     }
     
     .file-header {
-        background: rgba(15, 23, 42, 0.6);
+        background: var(--card-bg);
         padding: 16px 20px;
         cursor: pointer;
         display: flex;
@@ -285,7 +197,7 @@
     }
     
     .file-header:hover {
-        background: rgba(255, 107, 0, 0.05);
+        background: var(--hover-bg);
     }
     
     .file-info {
@@ -299,7 +211,7 @@
         align-items: center;
         gap: 10px;
         flex-wrap: wrap;
-        color: #e2e8f0;
+        color: var(--text);
         font-size: 14px;
     }
     
@@ -307,7 +219,7 @@
         display: flex;
         gap: 15px;
         font-size: 11px;
-        color: #94a3b8;
+        color: var(--text-secondary);
     }
     
     .badge {
@@ -326,8 +238,8 @@
     .file-content {
         display: none;
         padding: 20px;
-        background: rgba(0, 0, 0, 0.3);
-        border-top: 1px solid rgba(255, 107, 0, 0.1);
+        background: var(--bg);
+        border-top: 1px solid var(--border);
     }
     
     .file-content.open {
@@ -336,7 +248,7 @@
     
     .suite {
         margin-bottom: 20px;
-        border: 1px solid rgba(255, 107, 0, 0.1);
+        border: 1px solid var(--border);
         border-radius: 8px;
         overflow: hidden;
     }
@@ -346,7 +258,7 @@
         padding: 10px 16px;
         font-weight: 600;
         font-size: 13px;
-        color: #ff9f4a;
+        color: var(--primary-light);
         text-transform: uppercase;
         letter-spacing: 0.3px;
     }
@@ -354,8 +266,8 @@
     .test-case {
         padding: 16px 20px;
         border-left: 3px solid;
-        background: rgba(0, 0, 0, 0.2);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        background: var(--bg);
+        border-bottom: 1px solid var(--border);
         transition: all 0.2s;
     }
     
@@ -364,7 +276,7 @@
     }
     
     .test-case:hover {
-        background: rgba(255, 107, 0, 0.03);
+        background: var(--hover-bg);
     }
     
     .test-case.passed { border-left-color: #10b981; }
@@ -380,10 +292,11 @@
         flex-wrap: wrap;
         gap: 10px;
         font-size: 14px;
+        color: var(--text);
     }
     
     .test-time {
-        color: #94a3b8;
+        color: var(--text-secondary);
         font-size: 11px;
         font-family: monospace;
     }
@@ -394,7 +307,7 @@
     }
     
     .test-classname {
-        color: #94a3b8;
+        color: var(--text-secondary);
         margin-bottom: 8px;
         font-size: 12px;
     }
@@ -416,7 +329,7 @@
         font-family: 'Courier New', 'Consolas', monospace;
         font-size: 12px;
         line-height: 1.6;
-        background: #0a0a0a;
+        background: var(--bg);
         padding: 14px 16px;
         border-radius: 8px;
         overflow-x: auto;
@@ -425,15 +338,15 @@
         max-height: 400px;
         overflow-y: auto;
         margin-top: 10px;
-        border: 1px solid rgba(255, 107, 0, 0.15);
-        color: #cbd5e1;
+        border: 1px solid var(--border);
+        color: var(--text);
     }
     
     .errors-table-container {
-        background: rgba(15, 23, 42, 0.4);
+        background: var(--card-bg);
         border-radius: 12px;
         margin-top: 20px;
-        border: 1px solid rgba(255, 107, 0, 0.2);
+        border: 1px solid var(--border);
         overflow: hidden;
     }
     
@@ -443,12 +356,12 @@
         align-items: center;
         padding: 15px 20px;
         background: rgba(0, 0, 0, 0.3);
-        border-bottom: 1px solid rgba(255, 107, 0, 0.2);
+        border-bottom: 1px solid var(--border);
         cursor: pointer;
     }
     
     .errors-table-header h4 {
-        color: #ff9f4a;
+        color: var(--primary-light);
         font-size: 13px;
         font-weight: 600;
         text-transform: uppercase;
@@ -456,7 +369,7 @@
     }
     
     .errors-table-header .toggle-icon {
-        color: #ff6b00;
+        color: var(--primary);
         font-size: 16px;
         transition: transform 0.2s;
     }
@@ -474,26 +387,26 @@
     .errors-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 12px;
+        font-size: 13px;
     }
     
     .errors-table th,
     .errors-table td {
         padding: 10px 12px;
         text-align: left;
-        border-bottom: 1px solid rgba(255, 107, 0, 0.1);
+        border-bottom: 1px solid var(--border);
     }
     
     .errors-table th {
         background: rgba(0, 0, 0, 0.4);
-        color: #ff9f4a;
+        color: var(--primary-light);
         font-weight: 600;
         position: sticky;
         top: 0;
     }
     
     .errors-table tr:hover {
-        background: rgba(255, 107, 0, 0.05);
+        background: var(--hover-bg);
     }
     
     .error-detail-row {
@@ -507,7 +420,7 @@
     
     .error-detail-cell {
         padding: 15px 20px !important;
-        border-top: 1px solid rgba(255, 107, 0, 0.15);
+        border-top: 1px solid var(--border);
     }
     
     .error-full-message {
@@ -523,36 +436,36 @@
     }
     
     .error-full-traceback {
-        background: #0a0a0a;
+        background: var(--bg);
         padding: 15px;
         border-radius: 8px;
         font-family: 'Courier New', 'Consolas', monospace;
-        font-size: 11px;
+        font-size: 13px;
         line-height: 1.5;
         overflow-x: auto;
         white-space: pre-wrap;
         word-break: break-word;
-        border: 1px solid rgba(255, 107, 0, 0.2);
+        border: 1px solid var(--border);
         max-height: 300px;
         overflow-y: auto;
-        color: #cbd5e1;
+        color: var(--text);
     }
     
     .expand-icon {
         display: inline-block;
         font-size: 12px;
         margin-right: 8px;
-        color: #ff6b00;
+        color: var(--primary);
         transition: transform 0.2s;
     }
     
     .report-footer {
         margin-top: 30px;
         padding: 20px 0;
-        border-top: 1px solid rgba(255, 107, 0, 0.2);
+        border-top: 1px solid var(--border);
         text-align: center;
         font-size: 11px;
-        color: #64748b;
+        color: var(--text-secondary);
     }
     
     .report-footer-content {
@@ -573,14 +486,14 @@
     }
     
     .footer-info span:last-child {
-        color: #ff9f4a;
+        color: var(--primary-light);
         font-weight: 500;
     }
     
     .empty-state {
         text-align: center;
         padding: 60px;
-        color: #64748b;
+        color: var(--text-secondary);
         font-size: 13px;
     }
     
@@ -588,9 +501,9 @@
         position: fixed;
         bottom: 30px;
         right: 30px;
-        background: #0d0d0d;
-        border: 1px solid #ff6b00;
-        color: #ff9f4a;
+        background: var(--card-bg);
+        border: 1px solid var(--primary);
+        color: var(--primary-light);
         padding: 10px 20px;
         border-radius: 8px;
         z-index: 10001;
@@ -639,6 +552,7 @@
         <button class="export-btn" id="showErrorsTableBtn">SHOW ERRORS TABLE</button>
         <button class="export-btn export-csv" id="exportErrorsCsvBtn">EXPORT ERRORS TO CSV</button>
         <button class="export-btn" id="exportErrorsJsonBtn">EXPORT ERRORS TO JSON</button>
+        <button class="export-btn" id="exportPdfBtn">EXPORT TO PDF</button>
         <button class="open-new-btn" id="openNewWindowBtn">OPEN IN NEW TAB</button>
     </div>
 </div>
@@ -786,7 +700,7 @@
                             ` : ''}
                             ${err.traceback ? `
                                 <div>
-                                    <strong> Stack Trace:</strong>
+                                    <strong>Stack Trace:</strong>
                                     <div class="error-full-traceback">${escapeHtml(err.traceback)}</div>
                                 </div>
                             ` : ''}
@@ -993,7 +907,7 @@
                 
                 suitesHtml += `
                     <div class="suite">
-                        <div class="suite-title">${escapeHtml(suite.name || 'unknown')}</div>
+                        <div class="suite-title"> ${escapeHtml(suite.name || 'unknown')}</div>
                         ${casesHtml}
                     </div>
                 `;
@@ -1006,7 +920,7 @@
                     <div class="file-header" onclick="toggleFile('${uniqueId}')">
                         <div class="file-info">
                             <div class="file-name">
-                                 ${escapeHtml(report.filename || 'unknown')}
+                                📄 ${escapeHtml(report.filename || 'unknown')}
                                 <span class="badge badge-${badgeClass}">${passRate}% ${badgeText}</span>
                             </div>
                             <div class="file-stats">
@@ -1016,7 +930,7 @@
                                 <span>T: ${s.total_time || 0}s</span>
                             </div>
                         </div>
-                        <div style="font-size: 16px; color: #ff6b00;">▼</div>
+                        <div style="font-size: 16px; color: var(--primary);">▼</div>
                     </div>
                     <div class="file-content" id="${uniqueId}">
                         ${suitesHtml}
@@ -1051,7 +965,7 @@
                 responsive: true,
                 maintainAspectRatio: true,
                 plugins: {
-                    legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 } } },
+                    legend: { position: 'bottom', labels: { color: 'var(--text-secondary)', font: { size: 10 } } },
                     tooltip: { 
                         callbacks: { 
                             label: (ctx) => `${ctx.label}: ${ctx.raw} (${total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0}%)`
@@ -1091,8 +1005,8 @@
                     tooltip: { callbacks: { label: (ctx) => `Pass Rate: ${ctx.raw}%` } } 
                 },
                 scales: {
-                    y: { beginAtZero: true, max: 100, grid: { color: '#334155' }, title: { display: true, text: '%', color: '#94a3b8', font: { size: 10 } } },
-                    x: { ticks: { rotation: 35, color: '#94a3b8', font: { size: 9 } } }
+                    y: { beginAtZero: true, max: 100, grid: { color: 'var(--border)' }, title: { display: true, text: '%', color: 'var(--text-secondary)', font: { size: 10 } } },
+                    x: { ticks: { rotation: 35, color: 'var(--text-secondary)', font: { size: 9 } } }
                 }
             }
         });
@@ -1137,6 +1051,10 @@
     document.getElementById('showErrorsTableBtn').onclick = showErrorsTable;
     document.getElementById('exportErrorsCsvBtn').onclick = exportErrorsToCSV;
     document.getElementById('exportErrorsJsonBtn').onclick = exportErrorsToJSON;
+    document.getElementById('exportPdfBtn').onclick = () => {
+        window.open(`/api/export-pdf/${groupId}`, '_blank');
+        showToast('PDF export started');
+    };
     
     loadReport();
 </script>

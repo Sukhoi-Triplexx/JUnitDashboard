@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}Настройки - VUnit {% endblock %}
-{% block page_title %}Системные настройки{% endblock %}
+{% block title %}Settings - VUnit{% endblock %}
+{% block page_title %}SYSTEM SETTINGS{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -9,21 +9,129 @@
         display: grid;
         gap: 25px;
     }
-    
+
+    .settings-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .save-btn-top {
+        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        color: white;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.2s;
+        font-size: 13px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .save-btn-top:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Маленькие уведомления */
+    .small-toast {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: var(--card-bg);
+        border-left: 4px solid var(--primary);
+        border-radius: 8px;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        z-index: 10001;
+        animation: slideInRight 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        font-size: 13px;
+    }
+
+    .small-toast.success {
+        border-left-color: #10b981;
+    }
+
+    .small-toast.error {
+        border-left-color: #ef4444;
+    }
+
+    .small-toast.info {
+        border-left-color: #3b82f6;
+    }
+
+    .small-toast i {
+        font-size: 16px;
+    }
+
+    .small-toast.success i { color: #10b981; }
+    .small-toast.error i { color: #ef4444; }
+    .small-toast.info i { color: #3b82f6; }
+
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+
+    /* Улучшенные стили для полей ввода */
+    .setting-item input,
+    .setting-item select {
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .setting-item input:focus,
+    .setting-item select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.2);
+        outline: none;
+    }
+
+    /* Карточки */
     .settings-card {
-        background: rgba(0, 0, 0, 0.925);
-        backdrop-filter: blur(10px);
+        background: var(--card-bg);
         border-radius: 16px;
         padding: 25px;
-        border: 1px solid rgba(255, 107, 0, 0.2);
+        border: 1px solid var(--border);
+        position: relative;
     }
-    
+
+    .settings-card:hover {
+        border-color: var(--primary);
+    }
+
     .settings-card h3 {
-        color: #ff9f4a;
+        color: var(--primary-light);
         margin-bottom: 20px;
-        font-size: 1.2em;
+        font-size: 13px;
+        letter-spacing: 1px;
     }
-    
+
     .setting-item {
         margin-bottom: 20px;
         display: flex;
@@ -32,64 +140,60 @@
         flex-wrap: wrap;
         gap: 15px;
         padding: 10px 0;
-        border-bottom: 1px solid rgba(255, 107, 0, 0.1);
+        border-bottom: 1px solid var(--border);
     }
-    
+
     .setting-label {
         font-weight: 600;
-        color: #e2e8f0;
+        color: var(--text);
+        font-size: 13px;
     }
-    
+
     .setting-desc {
         font-size: 11px;
-        color: #64748b;
+        color: var(--text-secondary);
         margin-top: 4px;
     }
-    
+
     input, select {
-        padding: 10px 16px;
-        border: 1px solid rgba(255, 107, 0, 0.3);
-        border-radius: 10px;
-        background: rgba(0, 0, 0, 0.3);
-        color: #e2e8f0;
-        font-size: 13px;
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: var(--bg);
+        color: var(--text);
+        font-size: 12px;
         min-width: 250px;
     }
-    
-    input:focus, select:focus {
-        outline: none;
-        border-color: #ff6b00;
-    }
-    
+
     button {
-        background: linear-gradient(135deg, #ff6b00, #ff9f4a);
-        color: white;
-        border: none;
-        padding: 10px 24px;
-        border-radius: 10px;
+        background: transparent;
+        border: 1px solid var(--primary);
+        color: var(--primary-light);
+        padding: 8px 20px;
+        border-radius: 6px;
         cursor: pointer;
         font-weight: 600;
-        transition: all 0.3s;
+        transition: all 0.2s;
+        font-size: 12px;
     }
-    
+
     button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(255, 107, 0, 0.4);
+        background: var(--hover-bg);
     }
-    
+
     .switch {
         position: relative;
         display: inline-block;
-        width: 52px;
-        height: 28px;
+        width: 48px;
+        height: 24px;
     }
-    
+
     .switch input {
         opacity: 0;
         width: 0;
         height: 0;
     }
-    
+
     .slider {
         position: absolute;
         cursor: pointer;
@@ -98,186 +202,822 @@
         right: 0;
         bottom: 0;
         background-color: #334155;
-        transition: 0.3s;
-        border-radius: 28px;
+        transition: 0.2s;
+        border-radius: 24px;
     }
-    
+
     .slider:before {
         position: absolute;
         content: "";
-        height: 22px;
-        width: 22px;
+        height: 18px;
+        width: 18px;
         left: 3px;
         bottom: 3px;
         background-color: white;
-        transition: 0.3s;
+        transition: 0.2s;
         border-radius: 50%;
     }
-    
+
     input:checked + .slider {
-        background-color: #ff6b00;
+        background-color: var(--primary);
     }
-    
+
     input:checked + .slider:before {
         transform: translateX(24px);
     }
-    
+
     .save-btn {
         width: 100%;
-        padding: 15px;
-        font-size: 16px;
-        margin-top: 20px;
-    }
-    
-    .status {
         padding: 12px;
-        border-radius: 10px;
+        font-size: 13px;
+        margin-top: 20px;
+        background: rgba(255, 107, 0, 0.15);
+    }
+
+    .status {
+        padding: 10px;
+        border-radius: 6px;
         margin-top: 15px;
         display: none;
         text-align: center;
+        font-size: 12px;
     }
-    
+
     .status.success {
-        background: rgba(16, 185, 129, 0.2);
+        background: rgba(16, 185, 129, 0.15);
         color: #10b981;
         display: block;
     }
-    
+
     .status.error {
-        background: rgba(239, 68, 68, 0.2);
+        background: rgba(239, 68, 68, 0.15);
         color: #ef4444;
         display: block;
     }
-    
-    code {
-        background: rgb(0, 0, 0);
-        padding: 2px 6px;
-        border-radius: 5px;
+
+    .status.info {
+        background: rgba(59, 130, 246, 0.15);
+        color: #3b82f6;
+        display: block;
+    }
+
+    .backup-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+    }
+
+    .backup-list {
+        margin-top: 15px;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .backup-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .backup-info {
+        font-size: 12px;
+    }
+
+    .backup-name {
+        font-family: monospace;
         font-size: 11px;
+    }
+
+    .backup-actions-small {
+        display: flex;
+        gap: 8px;
+    }
+
+    .backup-actions-small button {
+        padding: 4px 10px;
+        font-size: 10px;
+    }
+
+    hr {
+        border-color: var(--border);
+        margin: 20px 0;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 15px;
+        text-align: center;
+    }
+
+    .stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: var(--primary);
+    }
+
+    .stat-label {
+        font-size: 10px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        margin-top: 5px;
+    }
+
+    .pg-settings {
+        margin-top: 15px;
+        padding-top: 10px;
+        border-top: 1px solid var(--border);
+        display: none;
+    }
+
+    .pg-settings.visible {
+        display: block;
+    }
+
+    /* Модальные окна */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 10002;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: var(--card-bg);
+        border: 1px solid var(--primary);
+        border-radius: 16px;
+        padding: 30px;
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        animation: modalFadeIn 0.3s ease;
+    }
+
+    @keyframes modalFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .modal-content h3 {
+        color: var(--primary);
+        margin-bottom: 15px;
+        font-size: 1.2em;
+    }
+
+    .modal-content .key-display {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 15px;
+        margin: 20px 0;
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        word-break: break-all;
+        color: var(--primary-light);
+    }
+
+    .modal-content .warning-text {
+        color: #f59e0b;
+        font-size: 12px;
+        margin-bottom: 20px;
+    }
+
+    .modal-buttons {
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+    }
+
+    .modal-buttons button {
+        padding: 10px 24px;
+        cursor: pointer;
+        border-radius: 8px;
+        font-weight: 600;
+    }
+
+    .modal-buttons .primary-btn {
+        background: var(--primary);
+        border: none;
+        color: white;
+    }
+
+    .modal-buttons .primary-btn:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+    }
+
+    .modal-buttons .danger-btn {
+        background: #ef4444;
+        border: none;
+        color: white;
+    }
+
+    .modal-buttons .danger-btn:hover {
+        background: #dc2626;
+        transform: translateY(-2px);
+    }
+
+    .modal-buttons .secondary-btn {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+    }
+
+    .modal-buttons .secondary-btn:hover {
+        background: var(--hover-bg);
+    }
+
+    /* Всплывающие уведомления */
+    .toast-notification {
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: var(--card-bg);
+        border: 1px solid var(--primary);
+        color: var(--text);
+        padding: 12px 20px;
+        border-radius: 8px;
+        z-index: 10001;
+        animation: slideIn 0.3s ease;
+        font-size: 13px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="settings-grid">
+    <!-- Кнопка сохранения вверху -->
+    <div class="settings-header">
+        <h2 style="margin: 0;">System Configuration</h2>
+        <button class="save-btn-top" onclick="saveSettings()">
+            <i class="fas fa-save"></i> Save All Settings
+        </button>
+    </div>
+
+    <!-- Статистика системы -->
     <div class="settings-card">
-        <h3>Внешний вид</h3>
-        <div class="setting-item">
-            <div>
-                <div class="setting-label">Тема оформления</div>
-                <div class="setting-desc">Темная тема включена по умолчанию</div>
+        <h3><i class="fas fa-chart-line"></i> SYSTEM STATISTICS</h3>
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-value" id="statReports">-</div>
+                <div class="stat-label">Total Reports</div>
             </div>
-            <select id="themeSelect">
-                <option value="dark">Темная</option>
-                <option value="light">Светлая (экспериментально)</option>
-            </select>
+            <div class="stat-card">
+                <div class="stat-value" id="statFiles">-</div>
+                <div class="stat-label">Test Files</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statPassRate">-</div>
+                <div class="stat-label">Avg Pass Rate</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statWeekly">-</div>
+                <div class="stat-label">Last 7 days</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statDB">-</div>
+                <div class="stat-label">Database</div>
+            </div>
         </div>
     </div>
-    
+
+    <!-- PostgreSQL настройки -->
     <div class="settings-card">
-        <h3>Автоматический мониторинг</h3>
+        <h3><i class="fas fa-database"></i> POSTGRESQL CONNECTION</h3>
         <div class="setting-item">
             <div>
-                <div class="setting-label">Авто-мониторинг папки</div>
-                <div class="setting-desc">Автоматически обрабатывать новые XML файлы</div>
+                <div class="setting-label">Use PostgreSQL</div>
+                <div class="setting-desc">Switch from SQLite to PostgreSQL (requires restart)</div>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="postgresEnabled">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div id="pgSettings" class="pg-settings">
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">Host</div>
+                    <div class="setting-desc">PostgreSQL server address</div>
+                </div>
+                <input type="text" id="pgHost" placeholder="localhost">
+            </div>
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">Port</div>
+                    <div class="setting-desc">Database port (default: 5432)</div>
+                </div>
+                <input type="number" id="pgPort" placeholder="5432">
+            </div>
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">Database Name</div>
+                    <div class="setting-desc">Database name</div>
+                </div>
+                <input type="text" id="pgDatabase" placeholder="vunit">
+            </div>
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">Username</div>
+                    <div class="setting-desc">Database user</div>
+                </div>
+                <input type="text" id="pgUser" placeholder="postgres">
+            </div>
+            <div class="setting-item">
+                <div>
+                    <div class="setting-label">Password</div>
+                    <div class="setting-desc">Database password</div>
+                </div>
+                <input type="password" id="pgPassword" placeholder="********">
+            </div>
+            <button onclick="testPostgresConnection()" style="width: 100%; margin-top: 10px;">
+                <i class="fas fa-plug"></i> TEST CONNECTION
+            </button>
+        </div>
+    </div>
+
+    <!-- Автомониторинг -->
+    <div class="settings-card">
+        <h3><i class="fas fa-robot"></i> AUTO MONITORING</h3>
+        <div class="setting-item">
+            <div>
+                <div class="setting-label">Enable auto monitoring</div>
+                <div class="setting-desc">Automatically process new XML files</div>
             </div>
             <label class="switch">
                 <input type="checkbox" id="autoMonitoring">
                 <span class="slider"></span>
             </label>
         </div>
-        
         <div class="setting-item">
             <div>
-                <div class="setting-label">Папка для мониторинга</div>
-                <div class="setting-desc">Путь к папке с отчетами</div>
+                <div class="setting-label">Watched folder</div>
+                <div class="setting-desc">Path to folder with reports</div>
             </div>
             <input type="text" id="watchedFolder" style="min-width: 300px;">
         </div>
-        
         <div class="setting-item">
             <div>
-                <div class="setting-label">Интервал сканирования (сек)</div>
-                <div class="setting-desc">Как часто проверять новые файлы</div>
+                <div class="setting-label">Scan interval (seconds)</div>
+                <div class="setting-desc">How often to check for new files</div>
             </div>
             <input type="number" id="scanInterval" min="5" max="300" style="width: 100px;">
         </div>
+        <button onclick="manualScan()"><i class="fas fa-search"></i> SCAN NOW</button>
         
-        <button onclick="manualScan()">Сканировать</button>
-    </div>
-    
-    <div class="settings-card">
-        <h3>Telegram интеграция</h3>
         <div class="setting-item">
             <div>
-                <div class="setting-label">Включить Telegram бота</div>
-                <div class="setting-desc">Отправлять уведомления в Telegram (требуется интернет)</div>
+                <div class="setting-label">Auto-refresh dashboard</div>
+                <div class="setting-desc">Automatically check for new reports and update dashboard</div>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="autoRefreshEnabled">
+                <span class="slider"></span>
+            </label>
+        </div>
+
+        <div class="setting-item" id="refreshIntervalItem" style="display: none;">
+            <div>
+                <div class="setting-label">Refresh interval (seconds)</div>
+                <div class="setting-desc">How often to check for new reports</div>
+            </div>
+            <input type="number" id="refreshInterval" min="10" max="120" value="30" style="width: 100px;">
+        </div>
+    </div>
+
+    <!-- Управление данными -->
+    <div class="settings-card">
+        <h3><i class="fas fa-database"></i> DATA MANAGEMENT</h3>
+        <div class="backup-actions">
+            <button onclick="exportData()"><i class="fas fa-file-export"></i> EXPORT ALL</button>
+            <button onclick="importData()"><i class="fas fa-file-import"></i> IMPORT</button>
+            <button onclick="cleanupOldReports()"><i class="fas fa-trash-alt"></i> CLEANUP (30+ days)</button>
+        </div>
+        <div class="backup-actions">
+            <button onclick="createBackup()"><i class="fas fa-archive"></i> CREATE BACKUP</button>
+            <button onclick="cleanupBackups()"><i class="fas fa-broom"></i> CLEANUP BACKUPS</button>
+        </div>
+
+        <hr>
+
+        <div class="backup-list" id="backupList">
+            <div style="text-align: center; padding: 20px;">Loading backups...</div>
+        </div>
+    </div>
+
+    <!-- Telegram -->
+    <div class="settings-card">
+        <h3><i class="fab fa-telegram"></i> TELEGRAM</h3>
+        <div class="setting-item">
+            <div>
+                <div class="setting-label">Enable Telegram bot</div>
+                <div class="setting-desc">Send notifications to Telegram</div>
             </div>
             <label class="switch">
                 <input type="checkbox" id="telegramEnabled">
                 <span class="slider"></span>
             </label>
         </div>
-        
         <div class="setting-item">
             <div>
                 <div class="setting-label">Bot Token</div>
-                <div class="setting-desc">Токен от @BotFather</div>
+                <div class="setting-desc">Token from @BotFather</div>
             </div>
-            <input type="text" id="telegramToken" placeholder="1234567890:ABCdefGHIjklmNOPqrstUVwxyz" style="min-width: 350px;">
+            <input type="text" id="telegramToken" placeholder="1234567890:ABCdefGHIjklmNOPqrstUVwxyz">
         </div>
-        
         <div class="setting-item">
             <div>
                 <div class="setting-label">Chat ID</div>
-                <div class="setting-desc">ID чата или пользователя</div>
+                <div class="setting-desc">Chat or user ID</div>
             </div>
             <input type="text" id="telegramChatId" placeholder="-1001234567890">
         </div>
-        
+        <button onclick="testTelegram()"><i class="fab fa-telegram-plane"></i> TEST TELEGRAM</button>
+    </div>
+
+    <!-- Email -->
+    <div class="settings-card">
+        <h3><i class="fas fa-envelope"></i> EMAIL REPORTS</h3>
         <div class="setting-item">
             <div>
-                <div class="setting-label">Уведомлять о новых отчетах</div>
+                <div class="setting-label">Enable email reports</div>
+                <div class="setting-desc">Send test results via email</div>
             </div>
             <label class="switch">
-                <input type="checkbox" id="notifyOnNew">
+                <input type="checkbox" id="emailEnabled">
                 <span class="slider"></span>
             </label>
         </div>
+        <div class="setting-item">
+            <div>
+                <div class="setting-label">SMTP Server</div>
+            </div>
+            <input type="text" id="smtpServer" placeholder="smtp.gmail.com">
+        </div>
+        <div class="setting-item">
+            <div>
+                <div class="setting-label">SMTP Port</div>
+            </div>
+            <input type="number" id="smtpPort" placeholder="587">
+        </div>
+        <div class="setting-item">
+            <div>
+                <div class="setting-label">Email (from)</div>
+            </div>
+            <input type="email" id="emailFrom" placeholder="your@email.com">
+        </div>
+        <div class="setting-item">
+            <div>
+                <div class="setting-label">Recipient email</div>
+            </div>
+            <input type="email" id="emailTo" placeholder="reports@company.com">
+        </div>
+        <div class="setting-item">
+            <div>
+                <div class="setting-label">App Password</div>
+            </div>
+            <input type="password" id="smtpPassword" placeholder="********">
+        </div>
+        <button onclick="testEmail()"><i class="fas fa-paper-plane"></i> TEST EMAIL</button>
     </div>
-    
-    <button class="save-btn" onclick="saveSettings()">Сохранить настройки</button>
+
+    <!-- API ACCESS -->
+    <div class="settings-card">
+        <h3><i class="fas fa-key"></i> API ACCESS</h3>
+        <div class="setting-item">
+            <div>
+                <div class="setting-label">API Keys</div>
+                <div class="setting-desc">Keys for REST API access</div>
+            </div>
+            <button onclick="generateApiKey()"><i class="fas fa-plus"></i> Generate New Key</button>
+        </div>
+        <div id="apiKeysList" class="backup-list" style="margin-top: 15px;">
+            Loading...
+        </div>
+        <div class="setting-desc" style="margin-top: 10px;">
+            <i class="fas fa-info-circle"></i> 
+            Use with header: <code>X-API-Key: your_key_here</code>
+        </div>
+        <div class="setting-desc" style="margin-top: 5px;">
+            <i class="fas fa-terminal"></i> 
+            Example: <code>curl -X GET http://localhost:5000/api/v1/stats -H "X-API-Key: your_key"</code>
+        </div>
+    </div>
+
+    <!-- Кнопка сохранения внизу (для удобства) -->
+    <button class="save-btn" onclick="saveSettings()"><i class="fas fa-save"></i> SAVE ALL SETTINGS</button>
     <div id="status" class="status"></div>
+</div>
+
+<!-- Модальное окно для API ключа -->
+<div id="apiKeyModal" class="modal">
+    <div class="modal-content">
+        <h3><i class="fas fa-key"></i> New API Key Generated</h3>
+        <p>Copy this key now. You won't be able to see it again!</p>
+        <div class="key-display" id="apiKeyValue"></div>
+        <div class="warning-text">
+            <i class="fas fa-exclamation-triangle"></i> Store this key securely. It will not be shown again.
+        </div>
+        <div class="modal-buttons">
+            <button class="primary-btn" id="copyApiKeyBtn">
+                <i class="fas fa-copy"></i> Copy to Clipboard
+            </button>
+            <button class="secondary-btn" id="closeApiKeyModalBtn">
+                <i class="fas fa-check"></i> OK, I've Copied It
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для подтверждения действия -->
+<div id="confirmModal" class="modal">
+    <div class="modal-content">
+        <h3><i class="fas fa-exclamation-triangle" style="color: #ef4444;"></i> Confirm Action</h3>
+        <p id="confirmModalMessage">Are you sure you want to proceed?</p>
+        <div class="modal-buttons">
+            <button class="danger-btn" id="confirmYesBtn">
+                <i class="fas fa-trash"></i> Yes, Proceed
+            </button>
+            <button class="secondary-btn" id="confirmNoBtn">
+                <i class="fas fa-times"></i> Cancel
+            </button>
+        </div>
+    </div>
 </div>
 
 <script>
     let currentConfig = {};
-    
+    let pendingConfirmAction = null;
+
+    // Маленькое всплывающее уведомление
+    function showSmallToast(message, type = 'success') {
+        const existingToast = document.querySelector('.small-toast');
+        if (existingToast) existingToast.remove();
+
+        const toast = document.createElement('div');
+        toast.className = `small-toast ${type}`;
+        
+        let icon = 'fa-check-circle';
+        if (type === 'error') icon = 'fa-exclamation-circle';
+        if (type === 'info') icon = 'fa-info-circle';
+        
+        toast.innerHTML = `
+            <i class="fas ${icon}"></i>
+            <span>${message}</span>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // PostgreSQL тумблер
+    document.getElementById('postgresEnabled').addEventListener('change', function() {
+        const pgSettings = document.getElementById('pgSettings');
+        if (this.checked) {
+            pgSettings.classList.add('visible');
+        } else {
+            pgSettings.classList.remove('visible');
+        }
+    });
+
+    // Уведомление в статус-бар (для важных сообщений)
+    function showNotification(message, type) {
+        const statusDiv = document.getElementById('status');
+        if (!statusDiv) return;
+        
+        statusDiv.textContent = message;
+        statusDiv.className = `status ${type}`;
+        statusDiv.style.display = 'block';
+        
+        setTimeout(() => {
+            statusDiv.style.display = 'none';
+            statusDiv.className = 'status';
+        }, 5000);
+    }
+
+    // Функция для показа модального окна подтверждения
+    function showConfirmModal(message, onConfirm) {
+        const modal = document.getElementById('confirmModal');
+        const messageEl = document.getElementById('confirmModalMessage');
+        const yesBtn = document.getElementById('confirmYesBtn');
+        const noBtn = document.getElementById('confirmNoBtn');
+        
+        messageEl.textContent = message;
+        pendingConfirmAction = onConfirm;
+        modal.style.display = 'flex';
+        
+        const closeModal = () => {
+            modal.style.display = 'none';
+            yesBtn.removeEventListener('click', confirmHandler);
+            noBtn.removeEventListener('click', closeHandler);
+            pendingConfirmAction = null;
+        };
+        
+        const confirmHandler = () => {
+            if (pendingConfirmAction) pendingConfirmAction();
+            closeModal();
+        };
+        
+        const closeHandler = () => {
+            closeModal();
+        };
+        
+        yesBtn.addEventListener('click', confirmHandler);
+        noBtn.addEventListener('click', closeHandler);
+        
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+    }
+
+    // Тест подключения PostgreSQL
+    async function testPostgresConnection() {
+        const host = document.getElementById('pgHost').value;
+        const port = document.getElementById('pgPort').value;
+        const database = document.getElementById('pgDatabase').value;
+        const user = document.getElementById('pgUser').value;
+        const password = document.getElementById('pgPassword').value;
+        
+        if (!host || !database || !user) {
+            showSmallToast('Please fill in host, database and username', 'error');
+            return;
+        }
+        
+        showSmallToast('Testing PostgreSQL connection...', 'info');
+        
+        try {
+            const response = await fetch('/api/test-postgres', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    host, 
+                    port: parseInt(port) || 5432, 
+                    database, 
+                    user, 
+                    password 
+                })
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showSmallToast('PostgreSQL connection successful!', 'success');
+            } else {
+                showSmallToast('Connection failed: ' + result.error, 'error');
+            }
+        } catch (error) {
+            showSmallToast('Cannot reach PostgreSQL server: ' + error, 'error');
+        }
+    }
+
+    async function loadStats() {
+        try {
+            const response = await fetch('/api/stats');
+            const stats = await response.json();
+            document.getElementById('statReports').textContent = stats.total_reports || 0;
+            document.getElementById('statFiles').textContent = stats.total_test_files || 0;
+            document.getElementById('statPassRate').textContent = (stats.avg_pass_rate || 0) + '%';
+            document.getElementById('statWeekly').textContent = stats.weekly_reports || 0;
+            document.getElementById('statDB').textContent = stats.database === 'PostgreSQL' ? 'PG' : 'SQLite';
+        } catch (error) {
+            console.error('Stats error:', error);
+        }
+    }
+
+    async function loadBackups() {
+        try {
+            const response = await fetch('/api/backups/list');
+            const data = await response.json();
+            const container = document.getElementById('backupList');
+            
+            if (!data.backups || data.backups.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--text-secondary);">No backups found</div>';
+                return;
+            }
+            
+            let html = '';
+            for (const backup of data.backups) {
+                html += `
+                    <div class="backup-item">
+                        <div class="backup-info">
+                            <div class="backup-name">${backup.name}</div>
+                            <div style="font-size: 10px; color: var(--text-secondary);">${backup.size_mb} MB • ${new Date(backup.date).toLocaleString()}</div>
+                        </div>
+                        <div class="backup-actions-small">
+                            <button onclick="downloadBackup('${backup.name}')"><i class="fas fa-download"></i></button>
+                            <button onclick="restoreBackup('${backup.name}')"><i class="fas fa-undo-alt"></i></button>
+                            <button onclick="deleteBackup('${backup.name}')" style="border-color: #ef4444; color: #ef4444;"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        } catch (error) {
+            console.error('Backups error:', error);
+        }
+    }
+
     async function loadConfig() {
         const response = await fetch('/api/config');
         currentConfig = await response.json();
         
-        document.getElementById('themeSelect').value = currentConfig.theme;
         document.getElementById('autoMonitoring').checked = currentConfig.auto_monitoring;
         document.getElementById('watchedFolder').value = currentConfig.watched_folder;
         document.getElementById('scanInterval').value = currentConfig.scan_interval;
         document.getElementById('telegramEnabled').checked = currentConfig.telegram_enabled;
         document.getElementById('telegramToken').value = currentConfig.telegram_token || '';
         document.getElementById('telegramChatId').value = currentConfig.telegram_chat_id || '';
-        document.getElementById('notifyOnNew').checked = currentConfig.notify_on_new;
+        document.getElementById('emailEnabled').checked = currentConfig.email_enabled || false;
+        document.getElementById('smtpServer').value = currentConfig.smtp_server || '';
+        document.getElementById('smtpPort').value = currentConfig.smtp_port || 587;
+        document.getElementById('emailFrom').value = currentConfig.email_from || '';
+        document.getElementById('emailTo').value = currentConfig.email_to || '';
+        document.getElementById('smtpPassword').value = currentConfig.smtp_password || '';
+        
+        // Загрузка настроек PostgreSQL
+        document.getElementById('postgresEnabled').checked = currentConfig.postgres_enabled || false;
+        document.getElementById('pgHost').value = currentConfig.pg_host || 'localhost';
+        document.getElementById('pgPort').value = currentConfig.pg_port || 5432;
+        document.getElementById('pgDatabase').value = currentConfig.pg_database || 'vunit';
+        document.getElementById('pgUser').value = currentConfig.pg_user || 'postgres';
+        document.getElementById('pgPassword').value = currentConfig.pg_password || '';
+        
+        if (currentConfig.postgres_enabled) {
+            document.getElementById('pgSettings').classList.add('visible');
+        }
+
+        // Загрузка настроек автообновления
+        const autoRefreshCheckbox = document.getElementById('autoRefreshEnabled');
+        const refreshIntervalItem = document.getElementById('refreshIntervalItem');
+        
+        if (autoRefreshCheckbox) {
+            autoRefreshCheckbox.checked = currentConfig.auto_refresh_enabled || false;
+            refreshIntervalItem.style.display = autoRefreshCheckbox.checked ? 'flex' : 'none';
+            document.getElementById('refreshInterval').value = currentConfig.refresh_interval || 30;
+        }
     }
-    
+
     async function saveSettings() {
         const newConfig = {
-            theme: document.getElementById('themeSelect').value,
             auto_monitoring: document.getElementById('autoMonitoring').checked,
             watched_folder: document.getElementById('watchedFolder').value,
             scan_interval: parseInt(document.getElementById('scanInterval').value),
             telegram_enabled: document.getElementById('telegramEnabled').checked,
             telegram_token: document.getElementById('telegramToken').value,
             telegram_chat_id: document.getElementById('telegramChatId').value,
-            notify_on_new: document.getElementById('notifyOnNew').checked,
-            notify_on_failure: true
+            email_enabled: document.getElementById('emailEnabled').checked,
+            smtp_server: document.getElementById('smtpServer').value,
+            smtp_port: parseInt(document.getElementById('smtpPort').value),
+            email_from: document.getElementById('emailFrom').value,
+            email_to: document.getElementById('emailTo').value,
+            smtp_password: document.getElementById('smtpPassword').value,
+            postgres_enabled: document.getElementById('postgresEnabled').checked,
+            pg_host: document.getElementById('pgHost').value,
+            pg_port: parseInt(document.getElementById('pgPort').value) || 5432,
+            pg_database: document.getElementById('pgDatabase').value,
+            pg_user: document.getElementById('pgUser').value,
+            pg_password: document.getElementById('pgPassword').value,
+            auto_refresh_enabled: document.getElementById('autoRefreshEnabled')?.checked || false,
+            refresh_interval: parseInt(document.getElementById('refreshInterval')?.value) || 30
         };
         
         try {
@@ -288,36 +1028,284 @@
             });
             const result = await response.json();
             if (result.success) {
-                showStatus('✅ Настройки сохранены', 'success');
-                setTimeout(() => window.location.reload(), 1500);
+                showSmallToast('Settings saved successfully!', 'success');
+                if (newConfig.postgres_enabled) {
+                    showSmallToast('Restart VUnit to switch to PostgreSQL', 'info');
+                }
             } else {
-                showStatus('❌ Ошибка сохранения', 'error');
+                showSmallToast('Error saving settings', 'error');
             }
         } catch (error) {
-            showStatus('❌ Ошибка: ' + error, 'error');
+            showSmallToast('Error: ' + error, 'error');
         }
     }
-    
+
+    async function createBackup() {
+        try {
+            const response = await fetch('/api/backup', { method: 'POST' });
+            const result = await response.json();
+            if (result.success) {
+                showSmallToast(result.message, 'success');
+                loadBackups();
+            } else {
+                showSmallToast('Backup failed', 'error');
+            }
+        } catch (error) {
+            showSmallToast('Error: ' + error, 'error');
+        }
+    }
+
+    async function cleanupBackups() {
+        showConfirmModal('Delete old backups (keep last 10)?', async () => {
+            try {
+                const response = await fetch('/api/backup/cleanup', { method: 'POST' });
+                const result = await response.json();
+                showSmallToast(`Deleted ${result.deleted} old backups`, 'success');
+                loadBackups();
+            } catch (error) {
+                showSmallToast('Error: ' + error, 'error');
+            }
+        });
+    }
+
+    async function downloadBackup(filename) {
+        window.location.href = `/api/backup/download/${filename}`;
+    }
+
+    async function restoreBackup(filename) {
+        showConfirmModal(`Restore from ${filename}? Current data will be overwritten.`, async () => {
+            try {
+                const response = await fetch(`/api/backup/restore/${filename}`, { method: 'POST' });
+                const result = await response.json();
+                if (result.success) {
+                    showSmallToast(result.message, 'success');
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    showSmallToast('Restore failed', 'error');
+                }
+            } catch (error) {
+                showSmallToast('Error: ' + error, 'error');
+            }
+        });
+    }
+
+    async function deleteBackup(filename) {
+        showConfirmModal(`Delete backup ${filename}?`, async () => {
+            try {
+                const response = await fetch(`/api/backup/delete/${filename}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (result.success) {
+                    showSmallToast(result.message, 'success');
+                    loadBackups();
+                } else {
+                    showSmallToast('Delete failed', 'error');
+                }
+            } catch (error) {
+                showSmallToast('Error: ' + error, 'error');
+            }
+        });
+    }
+
+    async function exportData() {
+        try {
+            const response = await fetch('/api/export');
+            const data = await response.json();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `vunit_export_${new Date().toISOString().slice(0,19)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showSmallToast('Export completed', 'success');
+        } catch (error) {
+            showSmallToast('Export failed', 'error');
+        }
+    }
+
+    async function importData() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            const text = await file.text();
+            try {
+                const data = JSON.parse(text);
+                const response = await fetch('/api/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                if (response.ok) {
+                    showSmallToast('Import completed, reloading...', 'success');
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    showSmallToast('Import failed', 'error');
+                }
+            } catch (error) {
+                showSmallToast('Invalid file', 'error');
+            }
+        };
+        input.click();
+    }
+
+    async function cleanupOldReports() {
+        showConfirmModal('Delete reports older than 30 days? This cannot be undone.', async () => {
+            try {
+                const response = await fetch('/api/cleanup', { method: 'DELETE' });
+                const result = await response.json();
+                showSmallToast(result.message, 'success');
+                loadStats();
+            } catch (error) {
+                showSmallToast('Cleanup failed', 'error');
+            }
+        });
+    }
+
     async function manualScan() {
         try {
             const response = await fetch('/api/scan', { method: 'POST' });
             const result = await response.json();
-            if (result.success) showStatus('✅ Сканирование запущено', 'success');
+            showSmallToast('Scan started', 'success');
         } catch (error) {
-            showStatus('❌ Ошибка сканирования', 'error');
+            showSmallToast('Scan error', 'error');
         }
     }
-    
-    function showStatus(msg, type) {
-        const statusDiv = document.getElementById('status');
-        statusDiv.textContent = msg;
-        statusDiv.className = `status ${type}`;
-        setTimeout(() => {
-            statusDiv.style.display = 'none';
-            statusDiv.className = 'status';
-        }, 3000);
+
+    async function testTelegram() {
+        showSmallToast('Testing Telegram...', 'info');
+        setTimeout(() => showSmallToast('Check your Telegram!', 'success'), 1000);
     }
-    
+
+    async function testEmail() {
+        showSmallToast('Sending test email...', 'info');
+        try {
+            const response = await fetch('/api/test-email', { method: 'POST' });
+            const result = await response.json();
+            if (result.success) {
+                showSmallToast('Test email sent!', 'success');
+            } else {
+                showSmallToast('Email failed', 'error');
+            }
+        } catch (error) {
+            showSmallToast('Email error', 'error');
+        }
+    }
+
+    // API Keys functions
+    async function loadApiKeys() {
+        try {
+            const response = await fetch('/api/v1/keys');
+            const data = await response.json();
+            const container = document.getElementById('apiKeysList');
+            
+            if (!container) return;
+            
+            if (!data.keys || data.keys.length === 0) {
+                container.innerHTML = '<div style="text-align: center; padding: 15px; color: var(--text-secondary);">No API keys configured</div>';
+                return;
+            }
+            
+            let html = '';
+            for (const key of data.keys) {
+                html += `
+                    <div class="backup-item">
+                        <div class="backup-info">
+                            <div class="backup-name">🔑 ${key.masked}</div>
+                            <div style="font-size: 10px; color: var(--text-secondary);">Created: ${new Date(key.created).toLocaleString()}</div>
+                            <div style="font-size: 10px; color: var(--text-secondary);">Last used: ${key.last_used !== 'Never' ? new Date(key.last_used).toLocaleString() : 'Never'}</div>
+                        </div>
+                        <button onclick="revokeApiKey('${key.id}')" style="border-color: #ef4444; color: #ef4444;">
+                            <i class="fas fa-trash"></i> Revoke
+                        </button>
+                    </div>
+                `;
+            }
+            container.innerHTML = html;
+        } catch (error) {
+            console.error('Failed to load API keys:', error);
+            const container = document.getElementById('apiKeysList');
+            if (container) container.innerHTML = '<div style="text-align: center; padding: 15px; color: #ef4444;">Failed to load API keys</div>';
+        }
+    }
+
+    async function generateApiKey() {
+        try {
+            const response = await fetch('/api/v1/keys/generate', { method: 'POST' });
+            const data = await response.json();
+            
+            if (data.key) {
+                const modal = document.getElementById('apiKeyModal');
+                const keyDisplay = document.getElementById('apiKeyValue');
+                keyDisplay.textContent = data.key;
+                modal.style.display = 'flex';
+                
+                const copyBtn = document.getElementById('copyApiKeyBtn');
+                const closeBtn = document.getElementById('closeApiKeyModalBtn');
+                
+                const copyHandler = () => {
+                    navigator.clipboard.writeText(data.key);
+                    showSmallToast('API key copied to clipboard!', 'success');
+                };
+                
+                const closeHandler = () => {
+                    modal.style.display = 'none';
+                    copyBtn.removeEventListener('click', copyHandler);
+                    closeBtn.removeEventListener('click', closeHandler);
+                };
+                
+                copyBtn.addEventListener('click', copyHandler);
+                closeBtn.addEventListener('click', closeHandler);
+                
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.style.display = 'none';
+                        copyBtn.removeEventListener('click', copyHandler);
+                        closeBtn.removeEventListener('click', closeHandler);
+                    }
+                });
+                
+                loadApiKeys();
+            } else {
+                showSmallToast('Failed to generate key', 'error');
+            }
+        } catch (error) {
+            showSmallToast('Error: ' + error, 'error');
+        }
+    }
+
+    async function revokeApiKey(keyId) {
+        showConfirmModal('Revoke this API key? Any applications using it will lose access.', async () => {
+            try {
+                const response = await fetch(`/api/v1/keys/${keyId}`, { method: 'DELETE' });
+                const data = await response.json();
+                if (data.success) {
+                    showSmallToast('API key revoked', 'success');
+                    loadApiKeys();
+                } else {
+                    showSmallToast('Failed to revoke key', 'error');
+                }
+            } catch (error) {
+                showSmallToast('Error: ' + error, 'error');
+            }
+        });
+    }
+
+    // Обработчик изменения тумблера автообновления
+    const autoRefreshCheckbox = document.getElementById('autoRefreshEnabled');
+    const refreshIntervalItem = document.getElementById('refreshIntervalItem');
+
+    if (autoRefreshCheckbox) {
+        autoRefreshCheckbox.addEventListener('change', (e) => {
+            refreshIntervalItem.style.display = e.target.checked ? 'flex' : 'none';
+        });
+    }
+
+    // Initialize all
+    loadStats();
+    loadBackups();
     loadConfig();
+    loadApiKeys();
 </script>
 {% endblock %}

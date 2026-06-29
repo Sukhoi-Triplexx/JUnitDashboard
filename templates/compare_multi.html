@@ -1,0 +1,1616 @@
+{% extends "base.html" %}
+
+{% block title %}Compare Reports - VUnit{% endblock %}
+{% block page_title %}TEST COMPARISON{% endblock %}
+
+{% block extra_css %}
+<style>
+    .compare-controls {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-bottom: 30px;
+        background: var(--card-bg);
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        align-items: flex-end;
+    }
+    
+    .compare-controls .selector-group {
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .compare-controls .selector-group.filter-group {
+        min-width: 250px;
+        flex: 0.8;
+    }
+    
+    .compare-controls label {
+        display: block;
+        font-size: 11px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        margin-bottom: 5px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+    
+    .compare-controls select {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--bg);
+        color: var(--text);
+        font-size: 13px;
+        cursor: pointer;
+        transition: border-color 0.2s;
+    }
+    
+    .compare-controls select:focus {
+        border-color: var(--primary);
+        outline: none;
+    }
+    
+    .compare-controls select option {
+        padding: 8px;
+    }
+    
+    .compare-btn {
+        padding: 10px 28px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+        transition: all 0.2s;
+        white-space: nowrap;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .compare-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3);
+    }
+    
+    .compare-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .compare-btn i {
+        font-size: 16px;
+    }
+    
+    .auto-match-hint {
+        font-size: 12px;
+        color: var(--text-secondary);
+        padding: 8px 16px;
+        background: var(--bg);
+        border-radius: 8px;
+        border: 1px dashed var(--border);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+        min-width: 200px;
+    }
+    
+    .auto-match-hint i {
+        color: var(--primary);
+    }
+    
+    .comparison-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 15px;
+        margin-bottom: 25px;
+        padding: 20px;
+        background: var(--card-bg);
+        border-radius: 12px;
+        border: 1px solid var(--border);
+    }
+    
+    .summary-stat {
+        text-align: center;
+    }
+    
+    .summary-stat .number {
+        font-size: 28px;
+        font-weight: 700;
+        display: block;
+    }
+    
+    .summary-stat .label {
+        font-size: 10px;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 4px;
+    }
+    
+    .summary-stat.added .number { color: #10b981; }
+    .summary-stat.removed .number { color: #ef4444; }
+    .summary-stat.changed .number { color: #f59e0b; }
+    .summary-stat.same .number { color: #3b82f6; }
+    .summary-stat.total .number { color: var(--primary); }
+    
+    .summary-stat .stat-icon {
+        font-size: 20px;
+        display: block;
+        margin-bottom: 2px;
+    }
+    
+    .summary-stat.added .stat-icon { color: #10b981; }
+    .summary-stat.removed .stat-icon { color: #ef4444; }
+    .summary-stat.changed .stat-icon { color: #f59e0b; }
+    .summary-stat.same .stat-icon { color: #3b82f6; }
+    .summary-stat.total .stat-icon { color: var(--primary); }
+    
+    .comparison-container {
+        display: flex;
+        gap: 0;
+        background: var(--card-bg);
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        overflow: hidden;
+        max-height: 70vh;
+        position: relative;
+    }
+    
+    .comparison-column {
+        flex: 1;
+        overflow-y: auto;
+        max-height: 70vh;
+        padding: 0;
+    }
+    
+    .comparison-column:first-child {
+        border-right: 2px solid var(--border);
+    }
+    
+    .comparison-column::-webkit-scrollbar {
+        width: 4px;
+    }
+    
+    .comparison-column::-webkit-scrollbar-track {
+        background: var(--bg);
+    }
+    
+    .comparison-column::-webkit-scrollbar-thumb {
+        background: var(--primary);
+        border-radius: 2px;
+    }
+    
+    .column-header {
+        padding: 12px 16px;
+        background: var(--bg);
+        border-bottom: 2px solid var(--border);
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--primary-light);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .column-header .badge {
+        font-size: 10px;
+        padding: 2px 10px;
+        border-radius: 12px;
+        background: var(--hover-bg);
+        color: var(--text-secondary);
+    }
+    
+    .column-header .header-icon {
+        margin-right: 8px;
+    }
+    
+    .test-item {
+        padding: 10px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: background 0.15s;
+        cursor: pointer;
+        font-size: 13px;
+        min-height: 44px;
+    }
+    
+    .test-item:hover {
+        background: var(--hover-bg);
+    }
+    
+    .test-item .status-icon {
+        font-size: 16px;
+        flex-shrink: 0;
+        width: 24px;
+        text-align: center;
+    }
+    
+    .test-item .status-icon.passed { color: #10b981; }
+    .test-item .status-icon.failed { color: #ef4444; }
+    .test-item .status-icon.error { color: #f59e0b; }
+    .test-item .status-icon.skipped { color: #6b7280; }
+    .test-item .status-icon.unknown { color: var(--text-secondary); }
+    
+    .test-item .test-name {
+        flex: 1;
+        word-break: break-word;
+        color: var(--text);
+    }
+    
+    .test-item .test-suite {
+        font-size: 10px;
+        color: var(--text-secondary);
+        flex-shrink: 0;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        background: var(--hover-bg);
+        padding: 1px 8px;
+        border-radius: 10px;
+    }
+    
+    .test-item .test-time {
+        font-size: 10px;
+        color: var(--text-secondary);
+        font-family: monospace;
+        flex-shrink: 0;
+        min-width: 50px;
+        text-align: right;
+    }
+    
+    .test-item .match-type {
+        font-size: 8px;
+        color: var(--text-secondary);
+        background: var(--bg);
+        padding: 1px 6px;
+        border-radius: 8px;
+        flex-shrink: 0;
+        opacity: 0.6;
+    }
+    
+    .test-item.passed { border-left: 3px solid #10b981; }
+    .test-item.failed { border-left: 3px solid #ef4444; background: rgba(239, 68, 68, 0.03); }
+    .test-item.error { border-left: 3px solid #f59e0b; background: rgba(245, 158, 11, 0.03); }
+    .test-item.skipped { border-left: 3px solid #6b7280; opacity: 0.6; }
+    .test-item.unknown { border-left: 3px solid var(--border); }
+    
+    .test-item.diff-added {
+        background: rgba(16, 185, 129, 0.08);
+        border-left-color: #10b981;
+    }
+    
+    .test-item.diff-added .diff-badge {
+        background: #10b981;
+        color: white;
+        font-size: 9px;
+        padding: 1px 8px;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+    
+    .test-item.diff-removed {
+        background: rgba(239, 68, 68, 0.08);
+        border-left-color: #ef4444;
+        opacity: 0.7;
+    }
+    
+    .test-item.diff-removed .diff-badge {
+        background: #ef4444;
+        color: white;
+        font-size: 9px;
+        padding: 1px 8px;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+    
+    .test-item.diff-changed {
+        background: rgba(245, 158, 11, 0.08);
+        border-left-color: #f59e0b;
+    }
+    
+    .test-item.diff-changed .diff-badge {
+        background: #f59e0b;
+        color: white;
+        font-size: 9px;
+        padding: 1px 8px;
+        border-radius: 10px;
+        font-weight: 600;
+    }
+    
+    .test-item .old-status {
+        text-decoration: line-through;
+        color: #ef4444;
+        font-size: 12px;
+        margin-right: 4px;
+    }
+    
+    .test-item .new-status {
+        color: #10b981;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .test-item .arrow-icon {
+        color: var(--text-secondary);
+        font-size: 12px;
+        margin: 0 4px;
+    }
+    
+    .empty-state {
+        padding: 40px;
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 14px;
+    }
+    
+    .empty-state .icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+        opacity: 0.5;
+        color: var(--text-secondary);
+    }
+    
+    .filter-bar {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+        padding: 12px 16px;
+        background: var(--bg);
+        border-radius: 8px;
+        border: 1px solid var(--border);
+    }
+    
+    .filter-btn {
+        padding: 4px 14px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 500;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .filter-btn:hover {
+        border-color: var(--primary);
+        color: var(--text);
+    }
+    
+    .filter-btn.active {
+        background: var(--primary);
+        border-color: var(--primary);
+        color: white;
+    }
+    
+    .filter-btn .count {
+        font-size: 9px;
+        opacity: 0.7;
+        margin-left: 4px;
+    }
+    
+    .filter-btn i {
+        font-size: 12px;
+    }
+    
+    .sync-scroll {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: 10px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .sync-scroll:hover {
+        border-color: var(--primary);
+        color: var(--primary-light);
+    }
+    
+    .no-reports-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-secondary);
+    }
+    
+    .no-reports-state .icon {
+        font-size: 64px;
+        margin-bottom: 20px;
+        opacity: 0.3;
+        color: var(--text-secondary);
+    }
+    
+    .no-reports-state h3 {
+        margin-bottom: 10px;
+        color: var(--text);
+    }
+    
+    .suite-group-header {
+        padding: 8px 16px;
+        background: rgba(255, 107, 0, 0.08);
+        border-bottom: 1px solid var(--border);
+        font-weight: 600;
+        font-size: 12px;
+        color: var(--primary-light);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 4;
+    }
+    
+    .suite-group-header .suite-count {
+        font-size: 10px;
+        color: var(--text-secondary);
+        font-weight: 400;
+    }
+    
+    .suite-group-header .suite-match-type {
+        font-size: 9px;
+        color: #3b82f6;
+        background: rgba(59, 130, 246, 0.1);
+        padding: 1px 8px;
+        border-radius: 8px;
+    }
+    
+    .matched-suite-group {
+        background: rgba(59, 130, 246, 0.05);
+        border-left: 3px solid #3b82f6;
+        margin-bottom: 5px;
+    }
+    
+    .suite-filter-info {
+        font-size: 11px;
+        color: var(--text-secondary);
+        padding: 4px 12px;
+        background: var(--hover-bg);
+        border-radius: 6px;
+        display: inline-block;
+        margin-bottom: 10px;
+    }
+    
+    @media (max-width: 768px) {
+        .comparison-container {
+            flex-direction: column;
+            max-height: none;
+        }
+        
+        .comparison-column {
+            max-height: 50vh;
+        }
+        
+        .comparison-column:first-child {
+            border-right: none;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        .compare-controls {
+            flex-direction: column;
+        }
+        
+        .compare-controls .selector-group {
+            width: 100%;
+        }
+        
+        .compare-btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .test-item .test-suite {
+            max-width: 100px;
+            font-size: 8px;
+        }
+        
+        .comparison-summary {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="compare-controls">
+    <div class="selector-group">
+        <label><i class="fas fa-arrow-left"></i> Base Report</label>
+        <select id="baseReportSelect">
+            <option value="">Select base report...</option>
+        </select>
+    </div>
+    <div class="selector-group">
+        <label><i class="fas fa-arrow-right"></i> Compare With</label>
+        <select id="compareReportSelect">
+            <option value="">Select report to compare...</option>
+        </select>
+    </div>
+    <div class="selector-group filter-group">
+        <label><i class="fas fa-layer-group"></i> Filter by TestSuite</label>
+        <select id="suiteFilterSelect">
+            <option value="">All Suites (show all)</option>
+        </select>
+    </div>
+    <button class="compare-btn" id="compareBtn" onclick="compareReports()">
+        <i class="fas fa-code-branch"></i> Compare
+    </button>
+    <div class="auto-match-hint">
+        <i class="fas fa-magic"></i>
+        <span>Smart fuzzy match: by keywords in Suite name, then by test name</span>
+    </div>
+</div>
+
+<!-- Сводка -->
+<div id="summaryStats" style="display: none;">
+    <div class="comparison-summary" id="comparisonSummary"></div>
+</div>
+
+<!-- Фильтры -->
+<div id="filterBar" style="display: none;">
+    <div class="filter-bar" id="filterBarContent"></div>
+</div>
+
+<!-- Два столбца -->
+<div id="comparisonContainer" class="comparison-container" style="display: none;">
+    <div class="comparison-column" id="leftColumn">
+        <div class="column-header">
+            <span><i class="fas fa-file-alt header-icon"></i> <span id="leftColumnTitle">Base Report</span></span>
+            <span class="badge" id="leftColumnBadge">0 tests</span>
+        </div>
+        <div id="leftColumnContent"></div>
+    </div>
+    <div class="comparison-column" id="rightColumn">
+        <div class="column-header">
+            <span><i class="fas fa-file-alt header-icon"></i> <span id="rightColumnTitle">Compared Report</span></span>
+            <span class="badge" id="rightColumnBadge">0 tests</span>
+        </div>
+        <div id="rightColumnContent"></div>
+    </div>
+    <div class="sync-scroll" onclick="syncScroll()">
+        <i class="fas fa-arrows-alt-v"></i> Sync
+    </div>
+</div>
+
+<div id="noReportsState" class="no-reports-state">
+    <div class="icon"><i class="fas fa-inbox"></i></div>
+    <h3>No Reports Loaded</h3>
+    <p>Upload some test reports first or wait for auto-monitoring to process them.</p>
+</div>
+
+<script>
+// ============================================================
+// ПОЛНАЯ ВЕРСИЯ - FUZZY СОПОСТАВЛЕНИЕ С ФИЛЬТРАЦИЕЙ ПО SUITE
+// ============================================================
+
+// Функция нормализации имени теста
+function normalizeTestName(name) {
+    if (!name) return '';
+    name = name.replace(/\(.*?\)/g, '');
+    name = name.trim();
+    return name;
+}
+
+// Функция нормализации имени TestSuite
+function normalizeSuiteName(name) {
+    if (!name) return '';
+    name = name.trim();
+    return name;
+}
+
+// Функция извлечения ключевых слов из имени Suite
+function extractKeywords(text) {
+    if (!text) return [];
+    var stopWords = ['тест', 'test', 'suite', 'для', 'на', 'по', 'с', 'без', 'и', 'или', 'в', 'к', 'от', 'из', 'о', 'об', 'при', 'это', 'а', 'но', 'за', 'под', 'над', 'перед'];
+    var words = text.split(/[\s\-—–]+/);
+    var keywords = [];
+    for (var i = 0; i < words.length; i++) {
+        var word = words[i].trim().toUpperCase().replace(/[^А-ЯA-Z]/g, '');
+        if (word.length > 2 && stopWords.indexOf(word.toLowerCase()) === -1) {
+            keywords.push(word);
+        }
+    }
+    return keywords;
+}
+
+// Функция поиска совпадения с частичным совпадением (fuzzy)
+function findMatchingSuiteFuzzy(suiteName, targetSuites) {
+    var sourceWords = suiteName.split(/[\s\-—–]+/);
+    
+    var bestMatch = null;
+    var bestScore = 0;
+    
+    for (var i = 0; i < targetSuites.length; i++) {
+        var targetName = targetSuites[i];
+        var targetWords = targetName.split(/[\s\-—–]+/);
+        
+        var matchCount = 0;
+        var totalScore = 0;
+        var matchedPairs = [];
+        
+        for (var j = 0; j < sourceWords.length; j++) {
+            var srcWord = sourceWords[j].toUpperCase().replace(/[^А-ЯA-Z]/g, '');
+            if (srcWord.length < 3) continue;
+            
+            var bestWordScore = 0;
+            var bestWordMatch = null;
+            
+            for (var k = 0; k < targetWords.length; k++) {
+                var tgtWord = targetWords[k].toUpperCase().replace(/[^А-ЯA-Z]/g, '');
+                if (tgtWord.length < 3) continue;
+                
+                if (srcWord.indexOf(tgtWord) !== -1 || tgtWord.indexOf(srcWord) !== -1) {
+                    var commonLen = Math.min(srcWord.length, tgtWord.length);
+                    var maxLen = Math.max(srcWord.length, tgtWord.length);
+                    var score = commonLen / maxLen;
+                    if (score > bestWordScore) {
+                        bestWordScore = score;
+                        bestWordMatch = {src: srcWord, tgt: tgtWord, score: score};
+                    }
+                }
+            }
+            
+            if (bestWordMatch && bestWordScore > 0.4) {
+                matchCount++;
+                totalScore += bestWordScore;
+                matchedPairs.push(bestWordMatch);
+            }
+        }
+        
+        var score = matchCount / Math.max(sourceWords.length, targetWords.length);
+        var avgScore = matchedPairs.length > 0 ? totalScore / matchedPairs.length : 0;
+        var finalScore = score * 0.7 + (avgScore * 0.3);
+        
+        if (finalScore > bestScore && finalScore > 0.2) {
+            bestScore = finalScore;
+            bestMatch = targetName;
+        }
+    }
+    
+    if (bestMatch) {
+        console.log('🔗 Fuzzy matched: "' + suiteName + '" → "' + bestMatch + '" (score: ' + (bestScore * 100).toFixed(0) + '%)');
+        return bestMatch;
+    }
+    return null;
+}
+
+console.log('✅ compareTests loaded with fuzzy keyword matching');
+
+// ============================================================
+// ПЕРЕМЕННЫЕ
+// ============================================================
+
+var allReports = [];
+var baseData = null;
+var compareData = null;
+var diffResult = null;
+var currentFilter = 'all';
+var selectedSuiteFilter = '';
+
+// ============================================================
+// ИЗВЛЕЧЕНИЕ ТЕСТОВ
+// ============================================================
+
+function extractTests(reportData) {
+    var tests = [];
+    var reports = reportData.reports || [reportData];
+    
+    for (var i = 0; i < reports.length; i++) {
+        var report = reports[i];
+        var suites = report.suites || [];
+        
+        for (var j = 0; j < suites.length; j++) {
+            var suite = suites[j];
+            var suiteName = normalizeSuiteName(suite.name || 'unknown');
+            var cases = suite.test_cases || [];
+            
+            for (var k = 0; k < cases.length; k++) {
+                var test = cases[k];
+                tests.push({
+                    name: normalizeTestName(test.name || 'unknown'),
+                    suite: suiteName,
+                    classname: test.classname || 'unknown',
+                    status: test.status || 'unknown',
+                    time: test.time || 0,
+                    message: test.message || '',
+                    traceback: test.traceback || ''
+                });
+            }
+        }
+    }
+    
+    return tests;
+}
+
+// ============================================================
+// ГЛАВНАЯ ФУНКЦИЯ СРАВНЕНИЯ (С FUZZY ПОИСКОМ)
+// ============================================================
+
+window.compareTests = function(baseTests, compareTests) {
+    console.log('🔍 compareTests called with:', {
+        base: baseTests.length,
+        compare: compareTests.length
+    });
+    
+    // 1. Сначала пробуем точное сопоставление по suite|name
+    var baseMap = {};
+    for (var i = 0; i < baseTests.length; i++) {
+        var test = baseTests[i];
+        var key = test.suite + '|' + test.name;
+        if (!baseMap[key]) {
+            baseMap[key] = [];
+        }
+        baseMap[key].push(test);
+    }
+    
+    var compareMap = {};
+    for (var j = 0; j < compareTests.length; j++) {
+        var test = compareTests[j];
+        var key = test.suite + '|' + test.name;
+        if (!compareMap[key]) {
+            compareMap[key] = [];
+        }
+        compareMap[key].push(test);
+    }
+    
+    // 2. Строим карты по имени теста для fallback
+    var baseByName = {};
+    for (var i = 0; i < baseTests.length; i++) {
+        var test = baseTests[i];
+        var key = test.name;
+        if (!baseByName[key]) {
+            baseByName[key] = [];
+        }
+        baseByName[key].push(test);
+    }
+    
+    // 3. Находим все уникальные имена Suite из base и compare
+    var baseSuites = [];
+    for (var key in baseMap) {
+        var parts = key.split('|');
+        if (parts.length > 0 && baseSuites.indexOf(parts[0]) === -1) {
+            baseSuites.push(parts[0]);
+        }
+    }
+    
+    var compareSuites = [];
+    for (var key in compareMap) {
+        var parts = key.split('|');
+        if (parts.length > 0 && compareSuites.indexOf(parts[0]) === -1) {
+            compareSuites.push(parts[0]);
+        }
+    }
+    
+    console.log('📂 Base suites:', baseSuites.length);
+    console.log('📂 Compare suites:', compareSuites.length);
+    
+    // 4. Строим карту соответствия Suite по ключевым словам (FUZZY)
+    var suiteMapping = {};
+    var matchedSuites = {};
+    
+    for (var i = 0; i < baseSuites.length; i++) {
+        var baseSuite = baseSuites[i];
+        var matched = findMatchingSuiteFuzzy(baseSuite, compareSuites);
+        if (matched) {
+            suiteMapping[baseSuite] = matched;
+            matchedSuites[baseSuite] = matched;
+        }
+    }
+    
+    // 5. Перестраиваем карты с учётом сопоставления Suite
+    var baseMapMerged = {};
+    for (var key in baseMap) {
+        var parts = key.split('|');
+        var suite = parts[0];
+        var name = parts[1] || '';
+        var mappedSuite = suiteMapping[suite] || suite;
+        var newKey = mappedSuite + '|' + name;
+        if (!baseMapMerged[newKey]) {
+            baseMapMerged[newKey] = [];
+        }
+        for (var idx = 0; idx < baseMap[key].length; idx++) {
+            baseMapMerged[newKey].push(baseMap[key][idx]);
+        }
+    }
+    
+    var compareMapMerged = {};
+    for (var key in compareMap) {
+        var parts = key.split('|');
+        var suite = parts[0];
+        var name = parts[1] || '';
+        var newKey = suite + '|' + name;
+        if (!compareMapMerged[newKey]) {
+            compareMapMerged[newKey] = [];
+        }
+        for (var idx = 0; idx < compareMap[key].length; idx++) {
+            compareMapMerged[newKey].push(compareMap[key][idx]);
+        }
+    }
+    
+    var diff = {
+        added: [],
+        removed: [],
+        changed: [],
+        same: []
+    };
+    
+    var processedKeys = {};
+    var processedNames = {};
+    
+    // 6. Обрабатываем точные совпадения по suite|name (уже с учётом маппинга)
+    for (var key in compareMapMerged) {
+        if (baseMapMerged[key]) {
+            var baseTestsList = baseMapMerged[key];
+            var compareTestsList = compareMapMerged[key];
+            
+            var maxLen = Math.max(baseTestsList.length, compareTestsList.length);
+            for (var idx = 0; idx < maxLen; idx++) {
+                var baseTest = baseTestsList[idx] || null;
+                var compareTest = compareTestsList[idx] || null;
+                
+                if (baseTest && compareTest) {
+                    if (compareTest.status !== baseTest.status) {
+                        var changedTest = {
+                            name: compareTest.name,
+                            suite: compareTest.suite,
+                            status: compareTest.status,
+                            time: compareTest.time,
+                            old_status: baseTest.status,
+                            old_time: baseTest.time,
+                            message: compareTest.message || '',
+                            traceback: compareTest.traceback || '',
+                            matched_by: 'exact'
+                        };
+                        if (suiteMapping[baseTest.suite]) {
+                            changedTest.base_suite = baseTest.suite;
+                            changedTest.matched_by = 'keyword';
+                        }
+                        diff.changed.push(changedTest);
+                    } else {
+                        diff.same.push(compareTest);
+                    }
+                    processedKeys[key] = true;
+                }
+            }
+        }
+    }
+    
+    // 7. Для остальных пробуем сопоставить только по имени
+    var baseByNameRemaining = {};
+    for (var key in baseByName) {
+        baseByNameRemaining[key] = baseByName[key].slice();
+    }
+    
+    for (var key in compareMapMerged) {
+        if (!processedKeys[key]) {
+            for (var idx = 0; idx < compareMapMerged[key].length; idx++) {
+                var compareTest = compareMapMerged[key][idx];
+                var nameKey = compareTest.name;
+                
+                if (baseByNameRemaining[nameKey] && baseByNameRemaining[nameKey].length > 0) {
+                    var baseTest = baseByNameRemaining[nameKey][0];
+                    
+                    if (compareTest.status !== baseTest.status) {
+                        var changedTest = {
+                            name: compareTest.name,
+                            suite: compareTest.suite,
+                            status: compareTest.status,
+                            time: compareTest.time,
+                            old_status: baseTest.status,
+                            old_time: baseTest.time,
+                            message: compareTest.message || '',
+                            traceback: compareTest.traceback || '',
+                            matched_by: 'name_only'
+                        };
+                        diff.changed.push(changedTest);
+                    } else {
+                        diff.same.push(compareTest);
+                    }
+                    baseByNameRemaining[nameKey].splice(0, 1);
+                    processedNames[nameKey] = true;
+                } else {
+                    diff.added.push(compareTest);
+                }
+            }
+        }
+    }
+    
+    // 8. Все оставшиеся base тесты считаем удалёнными
+    for (var key in baseMapMerged) {
+        if (!processedKeys[key]) {
+            for (var idx = 0; idx < baseMapMerged[key].length; idx++) {
+                var baseTest = baseMapMerged[key][idx];
+                var nameKey = baseTest.name;
+                if (!processedNames[nameKey]) {
+                    diff.removed.push(baseTest);
+                }
+            }
+        }
+    }
+    
+    console.log('📊 Diff summary:', {
+        added: diff.added.length,
+        removed: diff.removed.length,
+        changed: diff.changed.length,
+        same: diff.same.length,
+        total: diff.added.length + diff.removed.length + diff.changed.length + diff.same.length
+    });
+    
+    return diff;
+};
+
+// ============================================================
+// ЗАГРУЗКА ОТЧЁТОВ
+// ============================================================
+
+function loadReports() {
+    console.log('🔄 Loading reports...');
+    fetch('/api/dates')
+        .then(function(response) { return response.json(); })
+        .then(function(dates) {
+            var reports = [];
+            var promises = [];
+            
+            for (var i = 0; i < dates.dates.length; i++) {
+                var date = dates.dates[i];
+                (function(date) {
+                    promises.push(
+                        fetch('/api/reports/by-date/' + date)
+                            .then(function(response) { return response.json(); })
+                            .then(function(data) {
+                                if (data.groups) {
+                                    for (var j = 0; j < data.groups.length; j++) {
+                                        var group = data.groups[j];
+                                        reports.push({
+                                            group_id: group.group_id,
+                                            display_name: group.display_name,
+                                            created_date: group.created_date,
+                                            date: date,
+                                            file_count: group.file_count,
+                                            pass_rate: group.combined_summary ? (group.combined_summary.pass_rate || 0) : 0,
+                                            total_tests: group.combined_summary ? (group.combined_summary.total_tests || 0) : 0
+                                        });
+                                    }
+                                }
+                            })
+                    );
+                })(date);
+            }
+            
+            return Promise.all(promises).then(function() {
+                return reports;
+            });
+        })
+        .then(function(reports) {
+            reports.sort(function(a, b) {
+                return new Date(b.created_date) - new Date(a.created_date);
+            });
+            allReports = reports;
+            console.log('✅ Loaded', reports.length, 'reports');
+            
+            if (reports.length === 0) {
+                document.getElementById('noReportsState').style.display = 'block';
+                return;
+            }
+            
+            document.getElementById('noReportsState').style.display = 'none';
+            populateSelects();
+            populateSuiteFilter();
+            
+            var urlParams = new URLSearchParams(window.location.search);
+            var baseId = urlParams.get('base');
+            var compareId = urlParams.get('compare');
+            
+            if (baseId && compareId) {
+                document.getElementById('baseReportSelect').value = baseId;
+                document.getElementById('compareReportSelect').value = compareId;
+                setTimeout(compareReports, 500);
+            } else if (reports.length >= 2) {
+                document.getElementById('baseReportSelect').value = reports[reports.length - 1].group_id;
+                document.getElementById('compareReportSelect').value = reports[0].group_id;
+                setTimeout(compareReports, 500);
+            }
+        })
+        .catch(function(error) {
+            console.error('❌ Error loading reports:', error);
+        });
+}
+
+function populateSelects() {
+    var baseSelect = document.getElementById('baseReportSelect');
+    var compareSelect = document.getElementById('compareReportSelect');
+    
+    baseSelect.innerHTML = '<option value="">Select base report...</option>';
+    compareSelect.innerHTML = '<option value="">Select report to compare...</option>';
+    
+    for (var i = 0; i < allReports.length; i++) {
+        var report = allReports[i];
+        var dateStr = new Date(report.created_date).toLocaleString();
+        var label = report.display_name + ' (' + dateStr + ') - ' + report.pass_rate + '%';
+        
+        var opt1 = document.createElement('option');
+        opt1.value = report.group_id;
+        opt1.textContent = label;
+        baseSelect.appendChild(opt1);
+        
+        var opt2 = document.createElement('option');
+        opt2.value = report.group_id;
+        opt2.textContent = label;
+        compareSelect.appendChild(opt2);
+    }
+}
+
+// ============================================================
+// ФИЛЬТР ПО TESTSUITE
+// ============================================================
+
+function populateSuiteFilter() {
+    var suiteFilter = document.getElementById('suiteFilterSelect');
+    suiteFilter.innerHTML = '<option value="">All Suites (show all)</option>';
+    
+    // Собираем все уникальные Suite из всех отчётов
+    var allSuites = {};
+    var promises = [];
+    
+    for (var i = 0; i < allReports.length; i++) {
+        var report = allReports[i];
+        promises.push(
+            fetch('/api/report/' + report.group_id)
+                .then(function(response) { return response.json(); })
+                .then(function(data) {
+                    var tests = extractTests(data);
+                    for (var j = 0; j < tests.length; j++) {
+                        var suite = tests[j].suite;
+                        if (suite && suite !== 'unknown') {
+                            if (!allSuites[suite]) {
+                                allSuites[suite] = 0;
+                            }
+                            allSuites[suite]++;
+                        }
+                    }
+                })
+        );
+    }
+    
+    Promise.all(promises).then(function() {
+        var sortedSuites = Object.keys(allSuites).sort();
+        for (var i = 0; i < sortedSuites.length; i++) {
+            var suite = sortedSuites[i];
+            var count = allSuites[suite];
+            var option = document.createElement('option');
+            option.value = suite;
+            option.textContent = suite + ' (' + count + ' tests)';
+            suiteFilter.appendChild(option);
+        }
+    });
+}
+
+// ============================================================
+// ОСНОВНАЯ ФУНКЦИЯ СРАВНЕНИЯ (С ФИЛЬТРОМ)
+// ============================================================
+
+function compareReports() {
+    console.log('🔍 compareReports called');
+    
+    var baseId = document.getElementById('baseReportSelect').value;
+    var compareId = document.getElementById('compareReportSelect').value;
+    var suiteFilter = document.getElementById('suiteFilterSelect').value;
+    
+    if (!baseId || !compareId) {
+        alert('Please select both reports');
+        return;
+    }
+    
+    if (baseId === compareId) {
+        alert('Please select different reports');
+        return;
+    }
+    
+    var baseReport = null;
+    var compareReport = null;
+    for (var i = 0; i < allReports.length; i++) {
+        if (allReports[i].group_id === baseId) baseReport = allReports[i];
+        if (allReports[i].group_id === compareId) compareReport = allReports[i];
+    }
+    
+    if (!baseReport || !compareReport) {
+        alert('Report not found');
+        return;
+    }
+    
+    var btn = document.getElementById('compareBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Comparing...';
+    
+    var promises = [];
+    if (!baseReport.data) {
+        promises.push(
+            fetch('/api/report/' + baseId)
+                .then(function(response) { return response.json(); })
+                .then(function(data) { 
+                    baseReport.data = data; 
+                    console.log('📥 Loaded base report:', baseReport.display_name);
+                })
+        );
+    }
+    if (!compareReport.data) {
+        promises.push(
+            fetch('/api/report/' + compareId)
+                .then(function(response) { return response.json(); })
+                .then(function(data) { 
+                    compareReport.data = data;
+                    console.log('📥 Loaded compare report:', compareReport.display_name);
+                })
+        );
+    }
+    
+    Promise.all(promises)
+        .then(function() {
+            var baseTests = extractTests(baseReport.data);
+            var compareTestsList = extractTests(compareReport.data);
+            
+            // Применяем фильтр по Suite
+            if (suiteFilter) {
+                console.log('🔍 Filtering by suite:', suiteFilter);
+                baseTests = baseTests.filter(function(t) { return t.suite === suiteFilter; });
+                compareTestsList = compareTestsList.filter(function(t) { return t.suite === suiteFilter; });
+                console.log('📊 After filter - Base:', baseTests.length, 'Compare:', compareTestsList.length);
+            }
+            
+            if (baseTests.length === 0 && compareTestsList.length === 0) {
+                alert('No tests found for selected Suite filter. Try selecting a different filter.');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-code-branch"></i> Compare';
+                return;
+            }
+            
+            diffResult = window.compareTests(baseTests, compareTestsList);
+            baseData = baseReport;
+            compareData = compareReport;
+            
+            renderComparison(baseReport, compareReport, diffResult);
+        })
+        .catch(function(error) {
+            console.error('❌ Error comparing:', error);
+            alert('Error comparing: ' + error);
+        })
+        .finally(function() {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-code-branch"></i> Compare';
+        });
+}
+
+// ============================================================
+// РЕНДЕРИНГ (ОСТАЛОСЬ БЕЗ ИЗМЕНЕНИЙ)
+// ============================================================
+
+function renderComparison(baseReport, compareReport, diff) {
+    console.log('🎨 Rendering comparison...');
+    
+    var summary = document.getElementById('comparisonSummary');
+    var total = diff.added.length + diff.removed.length + diff.changed.length + diff.same.length;
+    
+    summary.innerHTML = 
+        '<div class="summary-stat added">' +
+            '<span class="stat-icon"><i class="fas fa-plus-circle"></i></span>' +
+            '<span class="number">' + diff.added.length + '</span>' +
+            '<span class="label">Added</span>' +
+        '</div>' +
+        '<div class="summary-stat removed">' +
+            '<span class="stat-icon"><i class="fas fa-minus-circle"></i></span>' +
+            '<span class="number">' + diff.removed.length + '</span>' +
+            '<span class="label">Removed</span>' +
+        '</div>' +
+        '<div class="summary-stat changed">' +
+            '<span class="stat-icon"><i class="fas fa-sync-alt"></i></span>' +
+            '<span class="number">' + diff.changed.length + '</span>' +
+            '<span class="label">Changed</span>' +
+        '</div>' +
+        '<div class="summary-stat same">' +
+            '<span class="stat-icon"><i class="fas fa-check-circle"></i></span>' +
+            '<span class="number">' + diff.same.length + '</span>' +
+            '<span class="label">Unchanged</span>' +
+        '</div>' +
+        '<div class="summary-stat total">' +
+            '<span class="stat-icon"><i class="fas fa-tasks"></i></span>' +
+            '<span class="number">' + total + '</span>' +
+            '<span class="label">Total Tests</span>' +
+        '</div>' +
+        '<div class="summary-stat" style="border-left: 2px solid var(--border); padding-left: 15px;">' +
+            '<span class="stat-icon"><i class="fas fa-percent"></i></span>' +
+            '<span class="number" style="font-size: 20px;">' + compareReport.pass_rate + '%</span>' +
+            '<span class="label">vs ' + baseReport.pass_rate + '%</span>' +
+        '</div>';
+    document.getElementById('summaryStats').style.display = 'block';
+    
+    var filterBar = document.getElementById('filterBarContent');
+    var filters = [
+        { id: 'all', label: 'All', count: total, icon: 'fa-list' },
+        { id: 'added', label: 'Added', count: diff.added.length, icon: 'fa-plus-circle' },
+        { id: 'removed', label: 'Removed', count: diff.removed.length, icon: 'fa-minus-circle' },
+        { id: 'changed', label: 'Changed', count: diff.changed.length, icon: 'fa-sync-alt' },
+        { id: 'same', label: 'Unchanged', count: diff.same.length, icon: 'fa-check-circle' }
+    ];
+    
+    var filterHtml = '';
+    for (var i = 0; i < filters.length; i++) {
+        var f = filters[i];
+        var activeClass = (f.id === currentFilter) ? 'active' : '';
+        filterHtml += 
+            '<button class="filter-btn ' + activeClass + '" onclick="setFilter(\'' + f.id + '\')">' +
+                '<i class="fas ' + f.icon + '"></i> ' + f.label +
+                '<span class="count">(' + f.count + ')</span>' +
+            '</button>';
+    }
+    filterBar.innerHTML = filterHtml;
+    document.getElementById('filterBar').style.display = 'block';
+    
+    document.getElementById('leftColumnTitle').textContent = baseReport.display_name;
+    document.getElementById('leftColumnBadge').textContent = baseReport.total_tests + ' tests';
+    document.getElementById('rightColumnTitle').textContent = compareReport.display_name;
+    document.getElementById('rightColumnBadge').textContent = compareReport.total_tests + ' tests';
+    
+    renderColumn('leftColumnContent', baseReport, diff, 'base');
+    renderColumn('rightColumnContent', compareReport, diff, 'compare');
+    
+    document.getElementById('comparisonContainer').style.display = 'flex';
+    
+    setTimeout(function() {
+        document.getElementById('comparisonContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+}
+
+// ============================================================
+// РЕНДЕРИНГ КОЛОНКИ (ОСТАЛОСЬ БЕЗ ИЗМЕНЕНИЙ)
+// ============================================================
+
+function renderColumn(containerId, report, diff, side) {
+    var container = document.getElementById(containerId);
+    var tests = extractTests(report.data);
+    
+    var diffMap = {};
+    for (var i = 0; i < diff.added.length; i++) {
+        var test = diff.added[i];
+        var key = test.suite + '|' + test.name;
+        diffMap[key] = 'added';
+    }
+    for (var j = 0; j < diff.removed.length; j++) {
+        var test = diff.removed[j];
+        var key = test.suite + '|' + test.name;
+        diffMap[key] = 'removed';
+    }
+    for (var k = 0; k < diff.changed.length; k++) {
+        var test = diff.changed[k];
+        var key = test.suite + '|' + test.name;
+        diffMap[key] = 'changed';
+    }
+    for (var l = 0; l < diff.same.length; l++) {
+        var test = diff.same[l];
+        var key = test.suite + '|' + test.name;
+        diffMap[key] = 'same';
+    }
+    
+    var testsBySuite = {};
+    for (var m = 0; m < tests.length; m++) {
+        var test = tests[m];
+        var suite = test.suite || 'unknown';
+        if (!testsBySuite[suite]) {
+            testsBySuite[suite] = [];
+        }
+        testsBySuite[suite].push(test);
+    }
+    
+    var sortedSuites = Object.keys(testsBySuite).sort();
+    var html = '';
+    var totalDisplayed = 0;
+    
+    for (var s = 0; s < sortedSuites.length; s++) {
+        var suiteName = sortedSuites[s];
+        var suiteTests = testsBySuite[suiteName];
+        
+        var filteredSuiteTests = [];
+        for (var n = 0; n < suiteTests.length; n++) {
+            var test = suiteTests[n];
+            var key = test.suite + '|' + test.name;
+            var diffType = diffMap[key] || 'same';
+            if (currentFilter === 'all' || diffType === currentFilter) {
+                filteredSuiteTests.push(test);
+            }
+        }
+        
+        if (filteredSuiteTests.length === 0) continue;
+        
+        filteredSuiteTests.sort(function(a, b) {
+            var keyA = a.suite + '|' + a.name;
+            var keyB = b.suite + '|' + b.name;
+            var diffA = diffMap[keyA] || 'same';
+            var diffB = diffMap[keyB] || 'same';
+            var order = { 'changed': 0, 'added': 1, 'removed': 2, 'same': 3 };
+            return (order[diffA] || 4) - (order[diffB] || 4);
+        });
+        
+        var suiteChanged = 0, suiteAdded = 0, suiteRemoved = 0;
+        for (var p = 0; p < filteredSuiteTests.length; p++) {
+            var key = filteredSuiteTests[p].suite + '|' + filteredSuiteTests[p].name;
+            var dt = diffMap[key] || 'same';
+            if (dt === 'changed') suiteChanged++;
+            if (dt === 'added') suiteAdded++;
+            if (dt === 'removed') suiteRemoved++;
+        }
+        
+        var suiteBadge = '';
+        if (suiteChanged > 0) suiteBadge += '🔄 ' + suiteChanged;
+        if (suiteAdded > 0) suiteBadge += (suiteBadge ? ' | ' : '') + '➕ ' + suiteAdded;
+        if (suiteRemoved > 0) suiteBadge += (suiteBadge ? ' | ' : '') + '➖ ' + suiteRemoved;
+        if (!suiteBadge) suiteBadge = '✅ ' + filteredSuiteTests.length;
+        
+        html += '<div class="suite-group-header">' +
+            '<span>' + escapeHtml(suiteName) + '</span>' +
+            '<span class="suite-count">' + suiteBadge + '</span>' +
+        '</div>';
+        
+        for (var q = 0; q < filteredSuiteTests.length; q++) {
+            var test = filteredSuiteTests[q];
+            var key = test.suite + '|' + test.name;
+            var diffType = diffMap[key] || 'same';
+            var statusClass = test.status || 'unknown';
+            
+            var diffBadge = '';
+            var extraClass = '';
+            var matchType = '';
+            
+            if (diffType === 'added') {
+                diffBadge = '<span class="diff-badge"><i class="fas fa-plus"></i> NEW</span>';
+                extraClass = 'diff-added';
+            } else if (diffType === 'removed') {
+                diffBadge = '<span class="diff-badge"><i class="fas fa-minus"></i> REMOVED</span>';
+                extraClass = 'diff-removed';
+            } else if (diffType === 'changed') {
+                diffBadge = '<span class="diff-badge"><i class="fas fa-sync-alt"></i> CHANGED</span>';
+                extraClass = 'diff-changed';
+                
+                for (var r = 0; r < diff.changed.length; r++) {
+                    if ((diff.changed[r].suite + '|' + diff.changed[r].name) === key) {
+                        matchType = diff.changed[r].matched_by || '';
+                        break;
+                    }
+                }
+            }
+            
+            var statusIcon = '';
+            switch(test.status) {
+                case 'passed': statusIcon = '<i class="fas fa-check-circle passed"></i>'; break;
+                case 'failed': statusIcon = '<i class="fas fa-times-circle failed"></i>'; break;
+                case 'error': statusIcon = '<i class="fas fa-exclamation-triangle error"></i>'; break;
+                case 'skipped': statusIcon = '<i class="fas fa-ban skipped"></i>'; break;
+                default: statusIcon = '<i class="fas fa-question-circle unknown"></i>';
+            }
+            
+            var statusDisplay = '';
+            if (side === 'compare' && diffType === 'changed') {
+                var changedTest = null;
+                for (var r = 0; r < diff.changed.length; r++) {
+                    if ((diff.changed[r].suite + '|' + diff.changed[r].name) === key) {
+                        changedTest = diff.changed[r];
+                        break;
+                    }
+                }
+                if (changedTest) {
+                    var oldIcon = changedTest.old_status === 'passed' ? '<i class="fas fa-check-circle" style="color: #10b981;"></i>' :
+                                  changedTest.old_status === 'failed' ? '<i class="fas fa-times-circle" style="color: #ef4444;"></i>' :
+                                  changedTest.old_status === 'error' ? '<i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>' :
+                                  '<i class="fas fa-question-circle"></i>';
+                    var newIcon = test.status === 'passed' ? '<i class="fas fa-check-circle" style="color: #10b981;"></i>' :
+                                  test.status === 'failed' ? '<i class="fas fa-times-circle" style="color: #ef4444;"></i>' :
+                                  test.status === 'error' ? '<i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>' :
+                                  '<i class="fas fa-question-circle"></i>';
+                    statusDisplay = 
+                        '<span class="old-status">' + oldIcon + '</span>' +
+                        '<span class="arrow-icon"><i class="fas fa-arrow-right"></i></span>' +
+                        '<span class="new-status">' + newIcon + '</span>';
+                }
+            } else {
+                statusDisplay = '<span class="status-icon">' + statusIcon + '</span>';
+            }
+            
+            var timeDisplay = test.time ? test.time.toFixed(2) + 's' : '-';
+            var testName = test.name || 'unknown';
+            var testSuite = test.suite || 'unknown';
+            var testMessage = test.message || '';
+            var testTraceback = test.traceback || '';
+            
+            var matchTypeDisplay = '';
+            if (matchType === 'name_only') {
+                matchTypeDisplay = '<span class="match-type">by name</span>';
+            } else if (matchType === 'exact') {
+                matchTypeDisplay = '<span class="match-type">exact</span>';
+            } else if (matchType === 'keyword') {
+                matchTypeDisplay = '<span class="match-type" style="color: #3b82f6;">🔑 fuzzy</span>';
+            }
+            
+            html += 
+                '<div class="test-item ' + statusClass + ' ' + extraClass + '" onclick="showTestDetails(\'' + 
+                    escapeHtml(testName) + '\', \'' + escapeHtml(testSuite) + '\', \'' + escapeHtml(testMessage) + '\', \'' + escapeHtml(testTraceback) + '\')">' +
+                    statusDisplay +
+                    '<span class="test-name">' + escapeHtml(testName) + '</span>' +
+                    '<span class="test-suite">' + escapeHtml(testSuite) + '</span>' +
+                    '<span class="test-time">' + timeDisplay + '</span>' +
+                    matchTypeDisplay +
+                    diffBadge +
+                '</div>';
+            
+            totalDisplayed++;
+        }
+    }
+    
+    if (totalDisplayed === 0) {
+        container.innerHTML = '<div class="empty-state">' +
+            '<div class="icon"><i class="fas fa-filter"></i></div>' +
+            'No tests match the filter' +
+        '</div>';
+        return;
+    }
+    
+    container.innerHTML = html;
+}
+
+// ============================================================
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ============================================================
+
+function setFilter(filter) {
+    currentFilter = filter;
+    
+    var btns = document.querySelectorAll('.filter-btn');
+    for (var i = 0; i < btns.length; i++) {
+        var btn = btns[i];
+        var isActive = btn.textContent.toLowerCase().includes(filter);
+        if (isActive) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    }
+    
+    if (baseData && compareData && diffResult) {
+        renderComparison(baseData, compareData, diffResult);
+    }
+}
+
+function syncScroll() {
+    var leftCol = document.getElementById('leftColumn');
+    var rightCol = document.getElementById('rightColumn');
+    if (leftCol && rightCol) {
+        rightCol.scrollTop = leftCol.scrollTop;
+        showSyncToast('🔗 Scroll synchronized');
+    }
+}
+
+function showSyncToast(message) {
+    var existing = document.querySelector('.sync-toast');
+    if (existing) existing.remove();
+    
+    var toast = document.createElement('div');
+    toast.className = 'sync-toast';
+    toast.style.cssText = 'position: fixed; bottom: 80px; right: 30px; background: var(--card-bg); border: 1px solid var(--primary); color: var(--text); padding: 8px 16px; border-radius: 8px; z-index: 10001; font-size: 12px; animation: slideIn 0.3s ease;';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(function() {
+        toast.style.animation = 'slideOutRight 0.3s ease';
+        setTimeout(function() { toast.remove(); }, 300);
+    }, 2000);
+}
+
+function showTestDetails(name, suite, message, traceback) {
+    if (!message && !traceback) {
+        alert('Test: ' + name + '\nSuite: ' + suite + '\nNo additional details available.');
+        return;
+    }
+    
+    var details = 'Test: ' + name + '\nSuite: ' + suite + '\n\n';
+    if (message) details += 'Message: ' + message + '\n\n';
+    if (traceback) details += 'Traceback:\n' + traceback;
+    
+    alert(details);
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    var div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ============================================================
+// ИНИЦИАЛИЗАЦИЯ
+// ============================================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('📄 DOM loaded');
+    
+    // Синхронизация скролла
+    var leftCol = document.getElementById('leftColumn');
+    var rightCol = document.getElementById('rightColumn');
+    
+    if (leftCol && rightCol) {
+        leftCol.addEventListener('scroll', function() {
+            rightCol.scrollTop = leftCol.scrollTop;
+        });
+        
+        rightCol.addEventListener('scroll', function() {
+            leftCol.scrollTop = rightCol.scrollTop;
+        });
+    }
+    
+    // Настройка select'ов
+    var baseSelect = document.getElementById('baseReportSelect');
+    var compareSelect = document.getElementById('compareReportSelect');
+    var suiteFilter = document.getElementById('suiteFilterSelect');
+    
+    if (baseSelect) {
+        baseSelect.addEventListener('change', function() {
+            if (document.getElementById('baseReportSelect').value && 
+                document.getElementById('compareReportSelect').value) {
+                compareReports();
+            }
+        });
+    }
+    
+    if (compareSelect) {
+        compareSelect.addEventListener('change', function() {
+            if (document.getElementById('baseReportSelect').value && 
+                document.getElementById('compareReportSelect').value) {
+                compareReports();
+            }
+        });
+    }
+    
+    if (suiteFilter) {
+        suiteFilter.addEventListener('change', function() {
+            if (document.getElementById('baseReportSelect').value && 
+                document.getElementById('compareReportSelect').value) {
+                compareReports();
+            }
+        });
+    }
+});
+
+// ============================================================
+// ЗАПУСК
+// ============================================================
+
+console.log('🚀 Starting VUnit Compare with fuzzy matching and suite filter...');
+loadReports();
+</script>
+{% endblock %}
